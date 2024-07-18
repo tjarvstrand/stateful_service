@@ -1,5 +1,5 @@
 
-Lightweight `[stateful_service](https://pub.dev/packages/stateful_service)` wrapper for `[riverpod](https://pub.dev/packages/riverpod)`.
+Lightweight [stateful_service](https://pub.dev/packages/stateful_service) wrapper for [riverpod](https://pub.dev/packages/riverpod).
 
 ## Getting started
 

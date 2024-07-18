@@ -1,5 +1,5 @@
 
-`[shared_preferences](https://pub.dev/packages/shared_preferences)`-based cache implementation for `[stateful_service](https://pub.dev/packages/stateful_service)`.
+[shared_preferences](https://pub.dev/packages/shared_preferences)-based cache implementation for [stateful_service](https://pub.dev/packages/stateful_service).
 
 ## Getting started
 
