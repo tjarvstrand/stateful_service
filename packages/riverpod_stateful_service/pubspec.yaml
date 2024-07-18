@@ -1,0 +1,15 @@
+name: riverpod_stateful_service
+description: "A lightweight stateful_service wrapper for Riverpod."
+version: 1.0.0
+homepage: https://github.com/tjarvstrand/stateful_service
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  riverpod: ^2.5.1
+  stateful_service: 0.0.1
+
+dev_dependencies:
+  flutter_lints:
+

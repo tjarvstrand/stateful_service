@@ -1,0 +1,16 @@
+name: stateful_service
+description: "A library for implementing stateful services in Dart."
+version: 1.0.0
+homepage: https://github.com/tjarvstrand/stateful_service
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  logger: ^2.4.0
+  meta: ^1.15.0
+  synchronized: ^3.1.0+1
+
+dev_dependencies:
+  flutter_lints:
+  test:

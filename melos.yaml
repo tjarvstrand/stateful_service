@@ -1,0 +1,26 @@
+name: stateful_service
+
+packages:
+  - examples/**
+  - packages/**
+
+command:
+  bootstrap:
+    environment:
+      sdk: ">=3.0.0 <4.0.0"
+    dependencies:
+      meta: ^1.15.0
+    devDependencies:
+      flutter_lints: ^4.0.0
+
+scripts:
+  build:
+    run: make build
+    exec:
+      concurrency: 1
+  watch:
+    run: make watch
+    exec:
+      concurrency: 1
+    packageFilters:
+      dependsOn: build_runner
