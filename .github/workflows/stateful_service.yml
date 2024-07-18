@@ -1,0 +1,22 @@
+name: stateful_service
+
+on:
+  push:
+    branches:
+     - master
+     - ci-test
+  pull_request:
+
+jobs:
+  test:
+    name: Test stateful_service
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./packages/stateful_service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+      - run: dart pub get
+      - run: dart test
+
