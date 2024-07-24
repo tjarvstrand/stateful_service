@@ -1,6 +1,10 @@
 name: shared_preferences_stateful_service_cache
-description: "A shared_preferences-based cache for stateful_service."
-version: 1.0.0
+description: >
+  A shared_preferences-based cache implementation for stateful_service.
+
+  See the stateful_service package for more information.
+
+version: 1.0.0+1
 homepage: https://github.com/tjarvstrand/stateful_service
 
 environment:

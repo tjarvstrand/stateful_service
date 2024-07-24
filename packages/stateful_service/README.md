@@ -1,15 +1,43 @@
+
+[![pub package](https://img.shields.io/pub/v/stateful_service.svg?label=stateful_service&color=blue)](https://pub.dev/packages/stateful_service)
+[![popularity](https://img.shields.io/pub/popularity/stateful_service?logo=dart)](https://pub.dev/packages/stateful_service/score)
+[![likes](https://img.shields.io/pub/likes/stateful_service?logo=dart)](https://pub.dev/packages/stateful_service/score)
+[![pub points](https://img.shields.io/pub/points/stateful_service?logo=dart)](https://pub.dev/packages/stateful_service/score)
+![building](https://github.com/jonataslaw/get/workflows/build/badge.svg)
 ## Features
 
-This package provides a simple and convenient way to represent stateful services in Dart. A 
-service's state is represented using a single value.
+This package provides a stream-based way to represent stateful services in Dart.
 
-All operations on the service's state are serialized using a single event queue which reduces the
-complexity of managing concurrent state changes and reduces the risk of race conditions. State 
-updates can be implemented either as a `Future`, or as a `Stream` for more complex operations.
+Primary benefits of using this package include:
 
-If an update fails (whether it's a `Future` or a `Stream`), the service will automatically revert to
-the state it had before the update started. This makes it simple to implement more complex state 
-changes such as optimistic UI updates. 
+#### Simplicity
+
+The service's state is represented using a single (preferably immutable) value, that can only be 
+changed from inside the service itself.
+
+#### Isolation
+
+All operations on the service's state are serialized using a single event queue, which reduces the 
+complexity of managing concurrent state changes and minimizes the risk of race conditions.
+
+#### Safety
+
+If an update fails, the service will automatically revert to the state it
+had before the update started. This makes it simple to implement more complex state changes such 
+as optimistic UI updates, without having to worry about leaving the service in an inconsistent
+state.
+
+#### Portability
+
+Since the service is based on Dart's own primitives, it can be used with any state management 
+solution, or even without one.
+
+#### Transferable knowledge
+
+Streams are an incredibly powerful concept that is widely used across the entire software 
+development industry. Unlike things like `Listenable`s, `Notifier`s, etc., once you familiarize 
+yourself with streams, you'll be able to transfer that knowledge to almost any other framework or 
+programming language that you'll pick up in the future.
 
 ## Getting started
 
@@ -17,7 +45,7 @@ To use this package, add `stateful_service` as a dependency in your `pubspec.yam
 
 ```yaml
 dependencies:
-  stateful_service: ^0.0.1
+  stateful_service: ^1.0.0
 ```
 
 Then, import the package in your Dart code and create a subclass of `StatefulService<T>`.

@@ -2,6 +2,7 @@ import 'package:meta/meta.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:stateful_service/stateful_service.dart';
 
+/// A [StatefulServiceCache] that uses [SharedPreferences] to cache the state.
 class SharedPreferencesStatefulServiceCache<S> with StatefulServiceCache<S> {
   SharedPreferencesStatefulServiceCache({
     required String key,
@@ -19,6 +20,7 @@ class SharedPreferencesStatefulServiceCache<S> with StatefulServiceCache<S> {
   final S Function(String) _fromString;
   final bool _clearOnDecodingError;
 
+  /// Initializes the cache by loading the state from [SharedPreferences].
   @override
   @mustCallSuper
   Future<S?> init() async {
@@ -35,13 +37,16 @@ class SharedPreferencesStatefulServiceCache<S> with StatefulServiceCache<S> {
     }
   }
 
+  /// Closes the cache, a no-op for this implementation.
   @override
   @mustCallSuper
   Future<void> close() => Future.value(null);
 
+  /// Persists the provided state in [SharedPreferences].
   @override
   Future<void> put(S state) async => _prefs.setString(_key, _toString(state));
 
+  /// Clears the cache by removing the value from [SharedPreferences].
   @override
   Future<void> clear() => _prefs.remove(_key);
 }

@@ -1,3 +1,9 @@
+[![pub package](https://img.shields.io/pub/v/shared_preferences_stateful_service_cache.svg?label=shared_preferences_stateful_service_cache&color=blue)](https://pub.dev/packages/shared_preferences_stateful_service_cache)
+[![popularity](https://img.shields.io/pub/popularity/shared_preferences_stateful_service_cache?logo=dart)](https://pub.dev/packages/shared_preferences_stateful_service_cache/score)
+[![likes](https://img.shields.io/pub/likes/shared_preferences_stateful_service_cache?logo=dart)](https://pub.dev/packages/shared_preferences_stateful_service_cache/score)
+[![pub points](https://img.shields.io/pub/points/shared_preferences_stateful_service_cache?logo=dart)](https://pub.dev/packages/shared_preferences_stateful_service_cache/score)
+![building](https://github.com/jonataslaw/get/workflows/build/badge.svg)
+
 
 [shared_preferences](https://pub.dev/packages/shared_preferences)-based cache implementation for [stateful_service](https://pub.dev/packages/stateful_service).
 
@@ -22,4 +28,9 @@ class UserService extends StatefulService<User> {
   ...
 }
 ```
+
+### Caveats
+
+Since shared_preferences keeps all its data in memory, it's not recommended to use this cache for
+services with large states. In such cases, consider using a different cache implementation.
 

@@ -5,12 +5,16 @@ import 'package:meta/meta.dart';
 import 'package:synchronized/synchronized.dart';
 
 mixin StatefulServiceCache<S> {
+  /// Initializes the cache and returns the cached state, if any.
   Future<S?> init();
 
+  /// Closes the cache.
   Future<void> close();
 
+  /// Persists the provided state in the cache.
   Future<void> put(S state);
 
+  /// Clears the cache.
   Future<void> clear();
 }
 
@@ -72,16 +76,22 @@ abstract class StatefulService<S> {
   bool _isUpdating = false;
   bool _ignoreUpdates = false;
 
+  /// The provided name of this service, or the runtime type if none was provided.
   String get name => _name ?? runtimeType.toString();
 
+  /// A [Future] that completes when the service has finished initializing.
   late final Future<void> initComplete;
 
   Stream<S> get stream => _controller.stream;
 
+  /// Returns true if this service has been closed. If this returns true, all calls to update the service's state will
+  /// fail.
   bool get isClosed => _controller.isClosed;
 
+  /// Returns true if this service is currently processing an update call.
   bool get isUpdating => _isUpdating;
 
+  /// The service's current state.
   S get state => _state;
 
   /// Listens to the state stream and calls [onData] whenever a new state is emitted.
