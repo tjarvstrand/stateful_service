@@ -29,9 +29,10 @@ abstract class StatefulService<S> {
   /// [name] is used only for logging purposes and defaults to this service's runtime type. A custom [Logger] can be
   /// supplied with the [logger] parameter.
   ///
-  /// If a cache is supplied, each updated state is persisted in the cache before it is emitted. If saving to the cache
-  /// fails, the updated state will still be emitted. A [cacheValidator] can be supplied to determine if the cached state
-  /// is valid and should be used in the current context.
+  /// If a cache is supplied, it's contents will be loaded as the first state update. After that, each updated state is
+  /// persisted in the cache before it is emitted. If saving to the cache fails, the updated state will still be
+  /// emitted. A [cacheValidator] can be supplied to determine if the cached state is valid and should be used in the
+  /// current context.
   ///
   /// By default, a new state is emitted to listeners if it does not compare equal to the current state, but this
   /// can be overridden using the [shouldStateBeEmitted] function parameter.
@@ -86,6 +87,7 @@ abstract class StatefulService<S> {
   /// A [Future] that completes when the service has finished initializing.
   late final Future<void> initComplete;
 
+  /// This stream emits the service's state whenever it changes, it will never emit errors.
   Stream<S> get stream => _controller.stream;
 
   /// Returns true if this service has been closed. If this returns true, all calls to update the service's state will

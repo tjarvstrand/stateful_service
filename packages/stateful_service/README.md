@@ -3,7 +3,7 @@
 [![popularity](https://img.shields.io/pub/popularity/stateful_service?logo=dart)](https://pub.dev/packages/stateful_service/score)
 [![likes](https://img.shields.io/pub/likes/stateful_service?logo=dart)](https://pub.dev/packages/stateful_service/score)
 [![pub points](https://img.shields.io/pub/points/stateful_service?logo=dart)](https://pub.dev/packages/stateful_service/score)
-![building](https://github.com/jonataslaw/get/workflows/build/badge.svg)
+![building](https://github.com/tjarvstrand/stateful_service/workflows/stateful_service/badge.svg)
 ## Features
 
 This package provides a stream-based way to represent stateful services in Dart.
@@ -48,7 +48,10 @@ dependencies:
   stateful_service: ^1.0.0
 ```
 
-Then, import the package in your Dart code and create a subclass of `StatefulService<T>`.
+### Creating a service
+
+To create a service, import the package in your Dart code and create a subclass of
+`StatefulService<T>`.
 
 ```dart
 import 'package:stateful_service/example.dart';
@@ -70,6 +73,22 @@ class UserService extends StatefulService<User> {
     await _api.updateName(newName);
   });
 }
+```
+
+### Consuming a service
+
+`StatefulService`s are stream-based, which means that you can consume state updates the same way you
+would consume any other stream in Dart, with the added convenience of always having access to the
+service's current state via the `state` getter.
+
+E.g. using a `StreamBuilder` in Flutter:
+
+```dart
+
+Widget build(BuildContext context) => StreamBuilder(
+  stream: service.stream,
+  builder: (_, __) => MyWidget(service.state),
+);
 ```
 
 ## Additional information

@@ -23,6 +23,15 @@ final StatefulServiceNotifierProvider<UserService, User> userProvider = Stateful
 });
 ```
 
+You can then use the provider as you would any other Riverpod provider:
+
+```dart
+Widget build(BuildContext context, WidgetRef ref) {
+  final user = ref.watch(userProvider);
+  ...
+}
+```
+
 You can also access the service directly using the included `Provider` extension, e.g:
 
 ```dart

@@ -1,3 +1,7 @@
+## 1.0.0+2
+
+Add more documentation and usage examples.
+
 ## 1.0.0+1
 
 - Updates to the README.

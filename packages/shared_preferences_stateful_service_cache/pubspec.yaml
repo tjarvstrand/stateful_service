@@ -4,7 +4,7 @@ description: >
 
   See the stateful_service package for more information.
 
-version: 1.0.0+1
+version: 1.0.0+2
 homepage: https://github.com/tjarvstrand/stateful_service
 
 environment:
