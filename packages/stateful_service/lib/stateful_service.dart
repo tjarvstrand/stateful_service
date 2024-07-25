@@ -53,7 +53,11 @@ abstract class StatefulService<S> {
     } else {
       initComplete = _update(() async {
         final cachedState = await cache.init().onError((err, trace) {
-          _logger.e('[$name] Failed to initialize ${cache.runtimeType}', error: err, stackTrace: trace);
+          _logger.e(
+            '[$name] Failed to initialize ${cache.runtimeType}',
+            error: err,
+            stackTrace: trace,
+          );
           return null;
         });
         if (cachedState != null && cacheValidator?.call(cachedState) != false) {
