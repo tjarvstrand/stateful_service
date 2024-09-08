@@ -1,6 +1,7 @@
-name: riverpod_stateful_service
+name: riverpod_stateful_service_annotation
 description: >
-  This package provides a lightweight stateful_service wrapper for Riverpod.
+  This package provides annotations to be used together with riverpod_stateful_service_generator to 
+  generate stateful service providers for Riverpod.
   
   See the stateful_service package for more information.
 version: 1.0.0+2
@@ -10,7 +11,8 @@ environment:
   sdk: ">=3.0.0 <4.0.0"
 
 dependencies:
-  riverpod: ^2.5.1
+  riverpod_annotation: ^2.3.5
+  riverpod_stateful_service: ^1.1.0
   stateful_service: ^1.1.0
 
 dev_dependencies:

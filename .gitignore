@@ -31,3 +31,5 @@ pubspec.lock
 .flutter-plugins
 .flutter-plugins-dependencies
 pubspec_overrides.yaml
+*.g.dart
+*.stateful_service.dart

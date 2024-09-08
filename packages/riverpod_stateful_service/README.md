@@ -7,6 +7,8 @@
 
 Lightweight [stateful_service](https://pub.dev/packages/stateful_service) wrapper for [riverpod](https://pub.dev/packages/riverpod).
 
+**Note**: If you're using `riverpod_generator`, have a look at the `riverpod_stateful_service_generator` package.
+
 ## Getting started
 
 See the `stateful_service` package documentation for more information on how to get started.

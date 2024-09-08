@@ -1,0 +1,20 @@
+name: riverpod_stateful_service_generator_example
+description: >
+  Example use of riverpod stateful service generator
+version: 1.0.0+2
+homepage: https://github.com/tjarvstrand/stateful_service
+publish_to: none
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  riverpod_annotation: ^2.3.5
+  riverpod_stateful_service_annotation:
+    path: ../../riverpod_stateful_service_annotation
+
+dev_dependencies:
+  build_runner: ^2.4.9
+  riverpod_generator: ^2.4.0
+  riverpod_stateful_service_generator:
+    path: ..
