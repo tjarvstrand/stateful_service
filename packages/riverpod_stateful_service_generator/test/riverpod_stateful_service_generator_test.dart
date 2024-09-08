@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:build/build.dart';
 import 'package:build_test/build_test.dart';
-import 'package:riverpod_stateful_service_generator/builder.dart';
+import 'package:riverpod_stateful_service_generator/riverpod_stateful_service_generator.dart';
 import 'package:riverpod_stateful_service_generator/src/riverpod_stateful_service_generator.dart';
 import 'package:test/test.dart';
 

@@ -3,7 +3,7 @@ description: >
   This package provides a lightweight stateful_service wrapper for Riverpod.
   
   See the stateful_service package for more information.
-version: 1.0.0+2
+version: 1.1.0
 homepage: https://github.com/tjarvstrand/stateful_service
 
 environment:

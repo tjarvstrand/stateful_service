@@ -1,6 +1,6 @@
 builders:
   riverpod_stateful_service_generator:
-    import: 'package:riverpod_stateful_service_generator/builder.dart'
+    import: 'package:riverpod_stateful_service_generator/riverpod_stateful_service_generator.dart'
     builder_factories: [ 'riverpodServiceBuilder' ]
     build_extensions: { ".dart": [ ".stateful_service.dart" ] }
     build_to: source
