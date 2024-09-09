@@ -33,3 +33,4 @@ pubspec.lock
 pubspec_overrides.yaml
 *.g.dart
 *.stateful_service.dart
+!packages/riverpod_stateful_service_generator/test/resources/*.stateful_service.dart

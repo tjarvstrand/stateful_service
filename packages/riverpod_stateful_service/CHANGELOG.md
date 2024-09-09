@@ -1,3 +1,7 @@
+## 1.1.1
+
+Improve generator output.
+
 ## 1.1.0
 
 Add riverpod_stateful_service_generator and riverpod_stateful_service_annotation.
