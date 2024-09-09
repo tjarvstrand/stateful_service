@@ -9,33 +9,55 @@ import 'package:source_gen/source_gen.dart';
 
 import 'parser_generator.dart';
 
+const _providerTypeTemplate = r'''
+typedef %ServiceName%Ref = NotifierProviderRef<%State%>;
+typedef %ServiceName%NotifierProvider = NotifierProvider<_$%ServiceName%Notifier, %State%>;
+
+final %ServiceNameLower%Provider = _$%ServiceNameLower%NotifierProvider;
+''';
+
+const _autoDisposeProviderTypeTemplate = r'''
+typedef %ServiceName%Ref = AutoDisposeNotifierProviderRef<%State%>;
+typedef %ServiceName%NotifierProvider = AutoDisposeNotifierProvider<_$%ServiceName%Notifier, %State%>;
+
+final %ServiceNameLower%Provider = _$%ServiceNameLower%NotifierProvider;
+''';
+
+const _providerFamilyTypeTemplate = r'''
+typedef %ServiceName%Ref = NotifierProviderRef<%State%>;
+typedef %ServiceName%NotifierProvider = _$%ServiceName%NotifierProvider;
+
+const %ServiceNameLower%Provider = _$%ServiceNameLower%NotifierProvider;
+''';
+
+const _autoDisposeProviderFamilyTypeTemplate = r'''
+typedef %ServiceName%Ref = AutoDisposeNotifierProviderRef<%State%>;
+typedef %ServiceName%NotifierProvider = _$%ServiceName%NotifierProvider;
+
+const %ServiceNameLower%Provider = _$%ServiceNameLower%NotifierProvider;
+''';
+
 const _autoDisposeExtensionsTemplate = r'''
-  typedef %ServiceName%Ref = AutoDisposeNotifierProviderRef<%State%>;
   
-  extension on _$%ServiceName%NotifierProvider {
-    ProviderListenable<%ServiceName%> get service => notifier.select((n) => n.service);
-  }
 ''';
 
 const _keepAliveExtensionsTemplate = r'''
-  typedef %ServiceName%Ref = NotifierProviderRef<%State%>;
   
-  extension on _$%ServiceName%NotifierProvider {
-    ProviderListenable<%ServiceName%> get service => notifier.select((n) => n.service);
-  }
 ''';
 
 const template = r'''
+%ProviderTypeTemplate%
 
-final %ServiceNameLower%Provider = _$%ServiceNameLower%NotifierProvider;
-
-%ExtensionsTemplate%
+extension %ServiceName%NotifierProviderExt on %ServiceName%NotifierProvider {
+  ProviderListenable<%ServiceName%> get service => notifier.select((n) => n.service);
+}
 
 %RiverpodAnnotation%
 class _$%ServiceName%Notifier extends _$$%ServiceName%Notifier {
+  @override
   %State% build(%BuildParameters%) {
     service = %ServiceName%(%ConstructorArguments%);
-    _subscription = service.listen((state) => state = state);
+    _subscription = service.listen((state) => this.state = state);
     ref.onDispose(() {
       _subscription.cancel();
       if(_closeOnDispose) {
@@ -120,6 +142,12 @@ class RiverpodStatefulServiceGenerator extends ParserGenerator<RiverpodService> 
     final positioned = StringBuffer();
     final named = StringBuffer();
     final constructorArguments = StringBuffer('ref, ');
+    final keepAlive = annotation.arguments?.arguments
+        .firstWhereOrNull((arg) => arg is NamedExpression && arg.name.label.name == 'keepAlive') as NamedExpression?;
+
+    final isFamily = constructor.parameters.length > 1;
+    final isAutoDispose = keepAlive?.expression.toString() != 'true';
+
     constructor.parameters.forEach((p) {
       if (p.type is InvalidType) {
         return;
@@ -147,13 +175,20 @@ class RiverpodStatefulServiceGenerator extends ParserGenerator<RiverpodService> 
             .firstWhereOrNull((arg) => arg is NamedExpression && arg.name.label.name == 'closeOnDispose')
         as NamedExpression?;
 
-    final keepAlive = annotation.arguments?.arguments
-        .firstWhereOrNull((arg) => arg is NamedExpression && arg.name.label.name == 'keepAlive') as NamedExpression?;
-
     final serviceNameLower = '${serviceClass.name.substring(0, 1).toLowerCase()}${serviceClass.name.substring(1)}';
 
     buffer.write(
       template
+          .replaceFirst(
+            '%ProviderTypeTemplate%',
+            isAutoDispose
+                ? isFamily
+                    ? _autoDisposeProviderFamilyTypeTemplate
+                    : _autoDisposeProviderTypeTemplate
+                : isFamily
+                    ? _providerFamilyTypeTemplate
+                    : _providerTypeTemplate,
+          )
           .replaceAll(
               '%ExtensionsTemplate%',
               keepAlive?.expression.toString() == 'true'

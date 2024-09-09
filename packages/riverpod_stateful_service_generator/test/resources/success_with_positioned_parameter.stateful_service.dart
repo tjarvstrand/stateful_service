@@ -6,22 +6,24 @@ part of 'success_with_positioned_parameter.dart';
 // RiverpodStatefulServiceGenerator
 // **************************************************************************
 
-final aProvider = _$aNotifierProvider;
-
 typedef ARef = AutoDisposeNotifierProviderRef<int>;
+typedef ANotifierProvider = _$ANotifierProvider;
 
-extension on _$ANotifierProvider {
+const aProvider = _$aNotifierProvider;
+
+extension ANotifierProviderExt on ANotifierProvider {
   ProviderListenable<A> get service => notifier.select((n) => n.service);
 }
 
 @riverpod
 class _$ANotifier extends _$$ANotifier {
+  @override
   int build(int a) {
     service = A(
       ref,
       a,
     );
-    _subscription = service.listen((state) => state = state);
+    _subscription = service.listen((state) => this.state = state);
     ref.onDispose(() {
       _subscription.cancel();
       if (_closeOnDispose) {
