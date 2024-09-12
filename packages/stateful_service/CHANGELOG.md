@@ -1,3 +1,9 @@
+## 2.0.0
+
+- Use logging-package instead of logger.
+- Allow `streamUpdates` to set a savepoint for rollback.
+- Avoid `LateInitializationError`s in generated Riverpod services.
+
 ## 1.1.1
 
 Improve generator output.

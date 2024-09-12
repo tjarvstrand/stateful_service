@@ -4,6 +4,7 @@ import 'package:stateful_service/stateful_service.dart';
 
 export 'dart:async' show StreamSubscription;
 
+export 'package:meta/meta.dart' show protected;
 export 'package:riverpod/riverpod.dart' show ProviderListenable;
 
 /// An annotation placed on classes inheriting from [StatefulService] to generate a Riverpod provider for them.

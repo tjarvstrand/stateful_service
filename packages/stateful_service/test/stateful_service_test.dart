@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:logger/logger.dart';
+import 'package:logging/logging.dart';
 import 'package:stateful_service/stateful_service.dart';
 import 'package:test/test.dart';
 
@@ -32,12 +32,12 @@ class TestCache with StatefulServiceCache<int> {
 }
 
 void main() {
-  final logger = Logger(level: Level.off);
+  Logger.root.level = Level.OFF;
   late TestService service;
 
   group('StatefulService', () {
     group('update', () {
-      setUp(() => service = TestService(initialState: 0, logger: logger));
+      setUp(() => service = TestService(initialState: 0));
       tearDown(() => service.close());
       test('updates the service state', () async {
         await service.update((state) => state + 1);
@@ -73,15 +73,15 @@ void main() {
       });
     });
     group('streamUpdates', () {
-      setUp(() => service = TestService(initialState: 0, logger: logger));
+      setUp(() => service = TestService(initialState: 0));
       tearDown(() => service.close());
       test('updates the service state', () async {
         final values = service.stream.take(4).toList();
-        await service.streamUpdates((state) async* {
+        await service.streamUpdates((state, _) async* {
           yield state + 1;
           yield state + 2;
         });
-        await service.streamUpdates((state) async* {
+        await service.streamUpdates((state, _) async* {
           yield state + 1;
           yield state + 2;
         });
@@ -89,22 +89,32 @@ void main() {
       });
       test('Rolls back the state when an update fails', () async {
         final values = service.stream.take(2).toList();
-        await service.streamUpdates((state) async* {
+        await service.streamUpdates((state, _) async* {
           yield state + 1;
           throw Exception('Failed');
         }).onError((_, __) {});
         expect(await values, [1, 0]);
       });
+      test('Rolls back the state to the last save point when an update fails', () async {
+        final values = service.stream.take(3).toList();
+        await service.streamUpdates((state, save) async* {
+          yield state + 1;
+          save();
+          yield state + 2;
+          throw Exception('Failed');
+        }).onError((_, __) {});
+        expect(await values, [1, 2, 1]);
+      });
       test('Drops concurrent updates if ignoreConcurrentRequests is true', () async {
         final update1Started = Completer();
         final update1CanComplete = Completer();
-        final update1 = service.streamUpdates((_) async* {
+        final update1 = service.streamUpdates((_, __) async* {
           update1Started.complete();
           await update1CanComplete.future;
           yield 2;
         }, ignoreConcurrentUpdates: true);
         await update1Started.future;
-        final update2 = service.streamUpdates((_) => Stream.value(3));
+        final update2 = service.streamUpdates((_, __) => Stream.value(3));
         update1CanComplete.complete();
         await update1;
         await update2;
@@ -112,7 +122,7 @@ void main() {
       });
       test('Fails if the service is closed', () async {
         await service.close();
-        expect(() => service.streamUpdates((state) => const Stream.empty()), throwsStateError);
+        expect(() => service.streamUpdates((_, __) => const Stream.empty()), throwsStateError);
       });
     });
     group('cache', () {
@@ -121,26 +131,26 @@ void main() {
       tearDown(() => service.close());
       test('is initialized and read when initializing the service', () async {
         cache.value = 1;
-        service = TestService(initialState: 0, logger: logger, cache: cache);
+        service = TestService(initialState: 0, cache: cache);
         await service.initComplete;
         expect(service.state, 1);
       });
       test('is updated if empty when initializing the service', () async {
         cache.value = null;
-        service = TestService(initialState: 0, logger: logger, cache: cache);
+        service = TestService(initialState: 0, cache: cache);
         await service.initComplete;
         expect(service.state, 0);
       });
       test('is updated when updating the service state', () async {
         cache.value = 1;
-        service = TestService(initialState: 0, logger: logger, cache: cache);
+        service = TestService(initialState: 0, cache: cache);
         await service.initComplete;
         await service.update((state) => 2);
         expect(service.state, 2);
       });
       test('can be cleared by the service', () async {
         cache.value = null;
-        service = TestService(initialState: 0, logger: logger, cache: cache);
+        service = TestService(initialState: 0, cache: cache);
         await service.initComplete;
         expect(cache.value, 0);
         await service.clearCache();
@@ -148,7 +158,7 @@ void main() {
       });
       test('does not prevent service from updating its state when cache write fails', () async {
         cache.value = 1;
-        service = TestService(initialState: 0, logger: logger, cache: cache);
+        service = TestService(initialState: 0, cache: cache);
         await service.initComplete;
         await service.update((state) => -2);
         expect(cache.value, 1);

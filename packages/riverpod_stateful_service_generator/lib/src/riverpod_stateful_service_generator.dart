@@ -67,8 +67,8 @@ class _$%ServiceName%Notifier extends _$$%ServiceName%Notifier {
     return service.state;
   }
   
-  late final %ServiceName% service;
-  late final StreamSubscription _subscription;
+  late %ServiceName% service;
+  late StreamSubscription _subscription;
   final _closeOnDispose = %CloseOnDispose%;
   
   // Defer this decision to [service].

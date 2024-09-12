@@ -24,7 +24,7 @@ class UserService extends StatefulService<User> {
       });
 
   /// Updates the user's name, updating the UI optimistically.
-  Future<void> updateNameOptimistic(String newName) => streamUpdates((user) async* {
+  Future<void> updateNameOptimistic(String newName) => streamUpdates((user, _) async* {
         yield user.withName(newName);
         await _api.updateName(newName);
       });

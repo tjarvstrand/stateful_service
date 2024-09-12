@@ -2,14 +2,14 @@ name: stateful_service
 description: >
   This package provides a stream-based way to represent stateful services in Dart, agnostic to
   any state management solution (BLoC, Riverpod, etc.).
-version: 1.1.1
+version: 2.0.0
 homepage: https://github.com/tjarvstrand/stateful_service
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
 
 dependencies:
-  logger: ^2.4.0
+  logging: ^1.2.0
   meta: ^1.11.0
   synchronized: ^3.1.0+1
 

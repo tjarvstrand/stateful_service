@@ -3,7 +3,7 @@ description: >
   This package provides a lightweight stateful_service wrapper for Riverpod using code generation.
   
   See the stateful_service package for more information.
-version: 1.1.1
+version: 2.0.0
 homepage: https://github.com/tjarvstrand/stateful_service
 
 environment:
@@ -14,10 +14,10 @@ dependencies:
   build: ^2.4.1
   build_config: ^1.1.1
   collection: ^1.18.0
-  meta: ^1.15.0
+  meta: ^1.11.0
   path: ^1.9.0
   riverpod_annotation: ^2.3.5
-  riverpod_stateful_service_annotation: ^1.1.0
+  riverpod_stateful_service_annotation: ^2.0.0
   source_gen: ^1.5.0
 
 dev_dependencies:
@@ -25,6 +25,6 @@ dev_dependencies:
   flutter_lints:
   riverpod: ^2.5.1
   riverpod_generator: ^2.4.0
-  stateful_service: ^1.1.0
+  stateful_service: ^2.0.0
   test: ^1.25.7
 
