@@ -78,8 +78,8 @@ abstract class StatefulService<S> {
   final StatefulServiceCache<S>? _cache;
   final bool Function(S state1, S state2) _shouldStateBeEmitted;
   final Lock _lock = Lock();
-  bool _isUpdating = false;
-  bool _ignoreUpdates = false;
+  int _isUpdating = 0;
+  int _ignoreUpdates = 0;
 
   /// The provided name of this service, or the runtime type if none was provided.
   String get name => _name ?? runtimeType.toString();
@@ -95,7 +95,7 @@ abstract class StatefulService<S> {
   bool get isClosed => _controller.isClosed;
 
   /// Returns true if this service is currently processing an update call.
-  bool get isUpdating => _isUpdating;
+  bool get isUpdating => _isUpdating > 0;
 
   /// The service's current state.
   S get state => _state;
@@ -147,23 +147,24 @@ abstract class StatefulService<S> {
   Future<void> _update(Future<void> Function() f, bool ignoreConcurrentUpdates) {
     if (isClosed) throw StateError('[$name] Cannot update a closed service');
 
-    final ignoreUpdates = _ignoreUpdates;
-    if (ignoreUpdates) {
+    if (_ignoreUpdates > 0) {
       _logger.fine('[$name] Ignoring concurrent state update');
       return Future.value(null);
     } else if (ignoreConcurrentUpdates) {
-      _ignoreUpdates = true;
+      _ignoreUpdates++;
     }
-    _isUpdating = true;
+    _isUpdating++;
     return _lock.synchronized(() async {
-      if (isClosed) {
-        _logger.warning('[$name] Already closed, ignoring update');
-      } else {
-        await f();
+      try {
+        if (isClosed) {
+          _logger.warning('[$name] Already closed, ignoring update');
+        } else {
+          await f();
+        }
+      } finally {
+        _ignoreUpdates--;
+        _isUpdating--;
       }
-    }).whenComplete(() {
-      _ignoreUpdates = false;
-      _isUpdating = false;
     });
   }
 

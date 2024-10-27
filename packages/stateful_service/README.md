@@ -23,9 +23,8 @@ complexity of managing concurrent state changes and minimizes the risk of race c
 #### Safety
 
 If an update fails, the service will automatically revert to the state it
-had before the update started. This makes it simple to implement more complex state changes such 
-as optimistic UI updates, without having to worry about leaving the service in an inconsistent
-state.
+had before the update started. This makes it simple to implement complex state changes such as 
+optimistic UI updates, without having to worry about leaving the service in an inconsistent state.
 
 #### Portability
 
@@ -67,8 +66,9 @@ class UserService extends StatefulService<User> {
     return user.withName(newName);
   });
 
-  /// Updates the user's name, updating listeners (e.g. the UI) optimistically.
-  Future<void> updateNameOptimistic(String newName) => streamUpdates((user) async* {
+  /// Updates the user's name, updating listeners (e.g. the UI) optimistically. Will roll back if
+  /// the call to `_api.updateName` fails.
+  Future<void> updateNameOptimistic(String newName) => streamUpdates((user, save) async* {
     yield user.withName(newName);
     await _api.updateName(newName);
   });
