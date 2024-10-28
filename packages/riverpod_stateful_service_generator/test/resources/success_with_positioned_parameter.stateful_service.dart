@@ -33,8 +33,8 @@ class _$ANotifier extends _$$ANotifier {
     return service.state;
   }
 
-  late final A service;
-  late final StreamSubscription _subscription;
+  late A service;
+  late StreamSubscription _subscription;
   final _closeOnDispose = true;
 
   // Defer this decision to [service].

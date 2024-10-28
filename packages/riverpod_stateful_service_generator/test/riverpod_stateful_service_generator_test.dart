@@ -43,6 +43,15 @@ Future<void> main() async {
         reader: await PackageAssetReader.currentIsolate(),
       ),
     );
+    test(
+      'with ref member variable',
+      () async => testBuilder(
+        riverpodServiceBuilder(BuilderOptions.empty),
+        resource('success_with_ref_member'),
+        outputs: output('success_with_ref_member'),
+        reader: await PackageAssetReader.currentIsolate(),
+      ),
+    );
   });
 
   group('Validations', () {

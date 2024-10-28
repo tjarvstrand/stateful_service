@@ -149,7 +149,10 @@ class RiverpodStatefulServiceGenerator extends ParserGenerator<RiverpodService> 
     final isAutoDispose = keepAlive?.expression.toString() != 'true';
 
     constructor.parameters.forEach((p) {
-      if (p.type is InvalidType) {
+      final element = p.type.element;
+      if (p.type is InvalidType ||
+          (element is ClassElement &&
+              (element.name == 'Ref' || element.allSupertypes.any((element) => element.element.name == 'Ref')))) {
         return;
       }
       if (p.isNamed) {

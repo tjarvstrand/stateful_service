@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'success_base.dart';
+part of 'success_with_ref_member.dart';
 
 // **************************************************************************
 // RiverpodStatefulServiceGenerator
