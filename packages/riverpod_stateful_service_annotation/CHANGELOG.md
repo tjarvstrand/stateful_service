@@ -1,3 +1,8 @@
+## 2.0.1
+
+- Export `riverpod`-annotation and `ProviderFor` from riverpod_stateful_service_annotation.
+- Fixes for indicators for isUpdating and ignoring concurrent updates.
+
 ## 2.0.0
 
 - Use logging-package instead of logger.

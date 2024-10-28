@@ -4,7 +4,7 @@ description: >
   generate stateful service providers for Riverpod.
   
   See the stateful_service package for more information.
-version: 2.0.0
+version: 2.0.1
 homepage: https://github.com/tjarvstrand/stateful_service
 
 environment:
