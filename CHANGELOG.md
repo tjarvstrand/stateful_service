@@ -1,3 +1,7 @@
+## 2.0.3
+
+- Hide invalid exports in riverpod_stateful_service_annotation
+
 ## 2.0.2
 
 - Bump riverpod to 2.6.1.
