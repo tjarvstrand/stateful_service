@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+set -e
+
+export THIS_DIR=$(cd $(dirname "${BASH_SOURCE[$((${#BASH_SOURCE[@]} - 1))]}"); pwd)
+
+cd "${THIS_DIR}/.."
+
+VERSION="$1"
+
+PUBSPECS=$(ls $PWD/packages/*/pubspec.yaml)
+
+sed -i "s/version: .*/version: $VERSION/" ${PUBSPECS}
+sed -i "s/\([a-z_]*stateful_service[a-z_]*\):.*/\1: ^$VERSION/" ${PUBSPECS}
