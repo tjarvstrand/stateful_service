@@ -1,24 +1,24 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'success_base.dart';
+part of 'success_with_nullable_state.dart';
 
 // **************************************************************************
 // RiverpodStatefulServiceGenerator
 // **************************************************************************
 
-typedef ANotifierProvider = AutoDisposeNotifierProvider<_$ANotifier, ServiceState<int>>;
+typedef ANotifierProvider = AutoDisposeNotifierProvider<_$ANotifier, ServiceState<int?>>;
 
 final aProvider = _$aNotifierProvider;
 
 extension ANotifierProviderExt on ANotifierProvider {
   ProviderListenable<A> get service => notifier.select((n) => n.service);
-  ProviderListenable<int> get state => select((s) => s.state);
+  ProviderListenable<int?> get state => select((s) => s.state);
 }
 
 @riverpod
 class _$ANotifier extends _$$ANotifier {
   @override
-  ServiceState<int> build() {
+  ServiceState<int?> build() {
     service = A(
       ref,
     );
@@ -38,5 +38,5 @@ class _$ANotifier extends _$$ANotifier {
 
   // Defer this decision to [service].
   @override
-  bool updateShouldNotify(ServiceState<int> old, ServiceState<int> current) => true;
+  bool updateShouldNotify(ServiceState<int?> old, ServiceState<int?> current) => true;
 }

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:equatable/equatable.dart';
 import 'package:logging/logging.dart';
 import 'package:meta/meta.dart';
 import 'package:synchronized/synchronized.dart';
@@ -18,9 +19,50 @@ mixin StatefulServiceCache<S> {
   Future<void> clear();
 }
 
+sealed class ServiceState<T> {
+  T get state;
+  (Object, StackTrace)? get error;
+  bool get isUpdating;
+}
+
+class ServiceStateUpdating<T> extends ServiceState<T> with EquatableMixin {
+  ServiceStateUpdating._(this.state, {required this.wasUpdating});
+
+  @override
+  final T state;
+
+  /// False if this was the first state that was emitted as part of an update operation.
+  final bool wasUpdating;
+
+  @override
+  bool get isUpdating => true;
+
+  @override
+  (Object, StackTrace)? get error => null;
+
+  @override
+  List<Object?> get props => [state, wasUpdating];
+}
+
+class ServiceStateIdle<T> extends ServiceState<T> with EquatableMixin {
+  ServiceStateIdle._(this.state, [this.error]);
+
+  @override
+  final T state;
+
+  @override
+  bool get isUpdating => false;
+
+  @override
+  final (Object, StackTrace)? error;
+
+  @override
+  List<Object?> get props => [state, error];
+}
+
 /// A base class for representing a stateful service.
 ///
-/// The service state is available through the [state] value stream but the only way to update it is by returning/
+/// The service state is available through the [states] value stream but the only way to update it is by returning/
 /// yielding new values from the provided callbacks. This allows us to serialize all state changes and reduce the risk
 /// of race conditions.
 abstract class StatefulService<S> {
@@ -43,7 +85,7 @@ abstract class StatefulService<S> {
     StatefulServiceCache<S>? cache,
     bool Function(S)? cacheValidator,
     bool Function(S previousState, S newState)? shouldStateBeEmitted,
-  })  : _state = initialState,
+  })  : _state = ServiceStateIdle._(initialState),
         _name = name,
         _cache = cache,
         _shouldStateBeEmitted = shouldStateBeEmitted ?? ((a, b) => a != b) {
@@ -52,7 +94,7 @@ abstract class StatefulService<S> {
     if (cache == null) {
       initComplete = Future.value(null);
     } else {
-      initComplete = _update(() async {
+      initComplete = _lock.synchronized(() async {
         final cachedState = await cache.init().onError((err, trace) {
           _logger.severe(
             '[$name] Failed to initialize ${cache.runtimeType}',
@@ -62,24 +104,24 @@ abstract class StatefulService<S> {
           return null;
         });
         if (cachedState != null && cacheValidator?.call(cachedState) != false) {
-          await _addState(cachedState);
+          await _addState(ServiceStateIdle._(cachedState));
           _logger.fine('[$name] State cache initialized');
         } else {
           await cache.put(initialState);
         }
-      }, false);
+      });
     }
   }
 
-  S _state;
+  ServiceState<S> _state;
   final String? _name;
   late final Logger _logger;
-  final StreamController<S> _controller = StreamController.broadcast();
+  final StreamController<ServiceState<S>> _controller = StreamController.broadcast();
   final StatefulServiceCache<S>? _cache;
   final bool Function(S state1, S state2) _shouldStateBeEmitted;
   final Lock _lock = Lock();
-  int _isUpdating = 0;
-  int _ignoreUpdates = 0;
+  bool _isUpdating = false;
+  bool _ignoreUpdates = false;
 
   /// The provided name of this service, or the runtime type if none was provided.
   String get name => _name ?? runtimeType.toString();
@@ -87,21 +129,34 @@ abstract class StatefulService<S> {
   /// A [Future] that completes when the service has finished initializing.
   late final Future<void> initComplete;
 
+  Stream<ServiceState<S>> get serviceStates => _controller.stream;
+
   /// This stream emits the service's state whenever it changes, it will never emit errors.
-  Stream<S> get stream => _controller.stream;
+  Stream<S> get states => _controller.stream.expand((v) sync* {
+        if (v is ServiceStateUpdating<S> && v.wasUpdating || v is ServiceStateIdle<S> && v.error != null) {
+          yield v.state;
+        }
+      });
+
+  /// This stream emits the service's state whenever it changes, it will never emit errors.
+  Stream<ServiceState<S>> get stateStream => _controller.stream;
 
   /// Returns true if this service has been closed. If this returns true, all calls to update the service's state will
   /// fail.
   bool get isClosed => _controller.isClosed;
 
   /// Returns true if this service is currently processing an update call.
-  bool get isUpdating => _isUpdating > 0;
+  bool get isUpdating => _isUpdating;
 
   /// The service's current state.
-  S get state => _state;
+  ServiceState<S> get serviceState => _state;
+
+  /// The service's current state's value.
+  S get state => _state.state;
 
   /// Listens to the state stream and calls [onData] whenever a new state is emitted.
-  StreamSubscription<S> listen(void Function(S value) onData) => _controller.stream.listen(onData);
+  StreamSubscription<ServiceState<S>> listen(void Function(ServiceState<S> value) onData) =>
+      serviceStates.listen(onData);
 
   /// Clears this service's state cache. Note that this will not affect the current state of the service.
   Future<void> clearCache() async => _cache?.clear();
@@ -113,7 +168,13 @@ abstract class StatefulService<S> {
   @protected
   @visibleForTesting
   Future<void> update(FutureOr<S> Function(S state) update, {bool ignoreConcurrentUpdates = false}) =>
-      _update(() async => _addState(await update(state)), ignoreConcurrentUpdates);
+      streamUpdates((s, __) {
+        final u = update(s);
+        if (u is Future<S>) {
+          return Stream.fromFuture(u);
+        }
+        return Stream.value(u);
+      }, ignoreConcurrentUpdates: ignoreConcurrentUpdates);
 
   /// Performs a series of updates of service's state with the values emitted from the stream returned by [updates]. The
   /// service state will be locked (no other updates can take place) until the stream completes. [update] receives two
@@ -129,60 +190,57 @@ abstract class StatefulService<S> {
   Future<void> streamUpdates(
     Stream<S> Function(S state, void Function() save) updates, {
     bool ignoreConcurrentUpdates = false,
-  }) =>
-      _update(() async {
-        var savePoint = state;
-        var previous = savePoint;
-        try {
-          await updates(savePoint, () => savePoint = previous).forEach((state) {
-            previous = state;
-            _addState(state);
-          });
-        } catch (_) {
-          await _addState(savePoint);
-          rethrow;
-        }
-      }, ignoreConcurrentUpdates);
-
-  Future<void> _update(Future<void> Function() f, bool ignoreConcurrentUpdates) {
+  }) {
     if (isClosed) throw StateError('[$name] Cannot update a closed service');
 
-    if (_ignoreUpdates > 0) {
+    if (_ignoreUpdates) {
       _logger.fine('[$name] Ignoring concurrent state update');
       return Future.value(null);
     } else if (ignoreConcurrentUpdates) {
-      _ignoreUpdates++;
+      _ignoreUpdates = true;
     }
-    _isUpdating++;
+
     return _lock.synchronized(() async {
+      if (isClosed) {
+        _logger.warning('[$name] Already closed, ignoring update');
+        return;
+      }
+
+      _isUpdating = true;
+      await _addState(ServiceStateUpdating._(_state.state, wasUpdating: false), false);
+
+      var savePoint = _state.state;
+      var previous = savePoint;
       try {
-        if (isClosed) {
-          _logger.warning('[$name] Already closed, ignoring update');
-        } else {
-          await f();
-        }
+        await updates(savePoint, () => savePoint = previous).forEach((value) {
+          if (!_shouldStateBeEmitted(previous, value)) return;
+          previous = value;
+          _addState(ServiceStateUpdating._(value, wasUpdating: true));
+        });
+        await _addState(ServiceStateIdle._(_state.state));
+      } catch (error, trace) {
+        await _addState(ServiceStateIdle._(savePoint, (error, trace)));
+        rethrow;
       } finally {
-        _ignoreUpdates--;
-        _isUpdating--;
+        _ignoreUpdates = false;
+        _isUpdating = false;
       }
     });
   }
 
-  Future<S> _addState(S state) async {
-    if (_shouldStateBeEmitted(_state, state) && !isClosed) {
-      final cache = _cache;
-      if (cache != null) {
-        try {
-          await cache.put(state);
-          _logger.fine('[$name] State written to cache');
-        } catch (err, trace) {
-          _logger.severe('[$name] Failed to write to ${_cache.runtimeType}', err, trace);
-        }
+  Future<void> _addState(ServiceState<S> state, [bool shouldCache = true]) async {
+    if (isClosed) return;
+    final cache = _cache;
+    if (cache != null && shouldCache) {
+      try {
+        await cache.put(state.state);
+        _logger.fine('[$name] State written to cache');
+      } catch (err, trace) {
+        _logger.severe('[$name] Failed to write to ${_cache.runtimeType}', err, trace);
       }
-      _state = state;
-      _controller.add(state);
     }
-    return state;
+    _state = state;
+    _controller.add(state);
   }
 
   /// Closes the service. Any in-flight update operations will be discarded and further calls to update the service

@@ -2,9 +2,12 @@ import 'dart:io';
 
 import 'package:build/build.dart';
 import 'package:build_test/build_test.dart';
+import 'package:dart_style/dart_style.dart';
 import 'package:riverpod_stateful_service_generator/riverpod_stateful_service_generator.dart';
 import 'package:riverpod_stateful_service_generator/src/riverpod_stateful_service_generator.dart';
 import 'package:test/test.dart';
+
+final _builderOptions = BuilderOptions({'formatter': DartFormatter(pageWidth: 120)});
 
 Map<String, String> resource(String name) =>
     {'stateful_service_generator|test/resources/$name.dart': File('test/resources/$name.dart').readAsStringSync()};
@@ -19,16 +22,25 @@ Future<void> main() async {
     test(
       'base',
       () async => testBuilder(
-        riverpodServiceBuilder(BuilderOptions.empty),
+        riverpodServiceBuilder(_builderOptions),
         resource('success_base'),
         outputs: output('success_base'),
         reader: await PackageAssetReader.currentIsolate(),
       ),
     );
     test(
+      'nullable_state',
+      () async => testBuilder(
+        riverpodServiceBuilder(_builderOptions),
+        resource('success_with_nullable_state'),
+        outputs: output('success_with_nullable_state'),
+        reader: await PackageAssetReader.currentIsolate(),
+      ),
+    );
+    test(
       'with positioned parameter',
       () async => testBuilder(
-        riverpodServiceBuilder(BuilderOptions.empty),
+        riverpodServiceBuilder(_builderOptions),
         resource('success_with_positioned_parameter'),
         reader: await PackageAssetReader.currentIsolate(),
         outputs: output('success_with_positioned_parameter'),
@@ -37,7 +49,7 @@ Future<void> main() async {
     test(
       'with annotation arguments',
       () async => testBuilder(
-        riverpodServiceBuilder(BuilderOptions.empty),
+        riverpodServiceBuilder(_builderOptions),
         resource('success_with_annotation_arguments'),
         outputs: output('success_with_annotation_arguments'),
         reader: await PackageAssetReader.currentIsolate(),
@@ -46,7 +58,7 @@ Future<void> main() async {
     test(
       'with ref member variable',
       () async => testBuilder(
-        riverpodServiceBuilder(BuilderOptions.empty),
+        riverpodServiceBuilder(_builderOptions),
         resource('success_with_ref_member'),
         outputs: output('success_with_ref_member'),
         reader: await PackageAssetReader.currentIsolate(),
@@ -56,10 +68,32 @@ Future<void> main() async {
 
   group('Validations', () {
     test(
+      'Missing riverpod import',
+      () => expect(
+        () async => testBuilder(
+          riverpodServiceBuilder(_builderOptions),
+          resource('fail_missing_riverpod_import'),
+          reader: await PackageAssetReader.currentIsolate(),
+        ),
+        throwsA(isA<MissingRiverpodImportError>()),
+      ),
+    );
+    test(
+      'Missing riverpod annotation import',
+      () => expect(
+        () async => testBuilder(
+          riverpodServiceBuilder(_builderOptions),
+          resource('fail_missing_riverpod_annotation_import'),
+          reader: await PackageAssetReader.currentIsolate(),
+        ),
+        throwsA(isA<MissingRiverpodAnnotationImportError>()),
+      ),
+    );
+    test(
       'Missing extends',
       () => expect(
         () async => testBuilder(
-          riverpodServiceBuilder(BuilderOptions.empty),
+          riverpodServiceBuilder(_builderOptions),
           resource('fail_missing_extends'),
           reader: await PackageAssetReader.currentIsolate(),
         ),
@@ -70,11 +104,15 @@ Future<void> main() async {
       'Missing build function',
       () => expect(
         () async => testBuilder(
-          riverpodServiceBuilder(BuilderOptions.empty),
+          riverpodServiceBuilder(_builderOptions),
           resource('fail_missing_unnamed_constructor'),
           reader: await PackageAssetReader.currentIsolate(),
         ),
-        throwsA(isA<MissingUnnamedConstructorError>()),
+        throwsA(
+          allOf(
+            isA<MissingUnnamedConstructorError>(),
+          ),
+        ),
       ),
     );
   });

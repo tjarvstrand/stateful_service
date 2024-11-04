@@ -3,59 +3,47 @@ import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:collection/collection.dart';
 import 'package:meta/meta.dart';
-import 'package:riverpod_annotation/src/riverpod_annotation.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:riverpod_stateful_service_annotation/riverpod_stateful_service_annotation.dart';
 import 'package:source_gen/source_gen.dart';
 
 import 'parser_generator.dart';
 
 const _providerTypeTemplate = r'''
-typedef %ServiceName%Ref = NotifierProviderRef<%State%>;
-typedef %ServiceName%NotifierProvider = NotifierProvider<_$%ServiceName%Notifier, %State%>;
+typedef %ServiceName%NotifierProvider = NotifierProvider<_$%ServiceName%Notifier, ServiceState<%State%>>;
 
 final %ServiceNameLower%Provider = _$%ServiceNameLower%NotifierProvider;
 ''';
 
 const _autoDisposeProviderTypeTemplate = r'''
-typedef %ServiceName%Ref = AutoDisposeNotifierProviderRef<%State%>;
-typedef %ServiceName%NotifierProvider = AutoDisposeNotifierProvider<_$%ServiceName%Notifier, %State%>;
+typedef %ServiceName%NotifierProvider = AutoDisposeNotifierProvider<_$%ServiceName%Notifier, ServiceState<%State%>>;
 
 final %ServiceNameLower%Provider = _$%ServiceNameLower%NotifierProvider;
 ''';
 
 const _providerFamilyTypeTemplate = r'''
-typedef %ServiceName%Ref = NotifierProviderRef<%State%>;
 typedef %ServiceName%NotifierProvider = _$%ServiceName%NotifierProvider;
 
 const %ServiceNameLower%Provider = _$%ServiceNameLower%NotifierProvider;
 ''';
 
 const _autoDisposeProviderFamilyTypeTemplate = r'''
-typedef %ServiceName%Ref = AutoDisposeNotifierProviderRef<%State%>;
 typedef %ServiceName%NotifierProvider = _$%ServiceName%NotifierProvider;
 
 const %ServiceNameLower%Provider = _$%ServiceNameLower%NotifierProvider;
 ''';
 
-const _autoDisposeExtensionsTemplate = r'''
-  
-''';
-
-const _keepAliveExtensionsTemplate = r'''
-  
-''';
-
 const template = r'''
 %ProviderTypeTemplate%
-
 extension %ServiceName%NotifierProviderExt on %ServiceName%NotifierProvider {
   ProviderListenable<%ServiceName%> get service => notifier.select((n) => n.service);
+  ProviderListenable<%State%> get state => select((s) => s.state);
 }
 
 %RiverpodAnnotation%
 class _$%ServiceName%Notifier extends _$$%ServiceName%Notifier {
   @override
-  %State% build(%BuildParameters%) {
+  ServiceState<%State%> build(%BuildParameters%) {
     service = %ServiceName%(%ConstructorArguments%);
     _subscription = service.listen((state) => this.state = state);
     ref.onDispose(() {
@@ -64,7 +52,7 @@ class _$%ServiceName%Notifier extends _$$%ServiceName%Notifier {
         service.close();
       }
     });
-    return service.state;
+    return service.serviceState;
   }
   
   late %ServiceName% service;
@@ -73,7 +61,7 @@ class _$%ServiceName%Notifier extends _$$%ServiceName%Notifier {
   
   // Defer this decision to [service].
   @override
-  bool updateShouldNotify(%State% old, %State% current) => true;
+  bool updateShouldNotify(ServiceState<%State%> old, ServiceState<%State%> current) => true;
 }
 ''';
 
@@ -86,7 +74,20 @@ class MissingExtensionError extends InvalidGenerationSourceError {
 
 class MissingUnnamedConstructorError extends InvalidGenerationSourceError {
   MissingUnnamedConstructorError(String name, {super.todo = '', super.element})
-      : super('The class $name declare an unnamed constructor');
+      : super('The class $name must declare an unnamed constructor');
+}
+
+class MissingImportError extends InvalidGenerationSourceError {
+  MissingImportError(String file, String import, {super.todo = '', super.element})
+      : super('The file $file must import $import');
+}
+
+class MissingRiverpodImportError extends MissingImportError {
+  MissingRiverpodImportError(String file) : super(file, 'riverpod.dart');
+}
+
+class MissingRiverpodAnnotationImportError extends MissingImportError {
+  MissingRiverpodAnnotationImportError(String file) : super(file, 'riverpod_annotation.dart');
 }
 
 @immutable
@@ -94,7 +95,27 @@ class RiverpodStatefulServiceGenerator extends ParserGenerator<RiverpodService> 
   @override
   String generateForUnit(List<CompilationUnit> compilationUnits) {
     final buffer = StringBuffer();
+    var hasRiverPodImport = false;
+    var hasRiverPodAnnotationImport = false;
     for (final unit in compilationUnits) {
+      for (final directive in unit.directives) {
+        if (directive is ImportDirective) {
+          if (directive.uri.stringValue == 'package:riverpod/riverpod.dart') {
+            hasRiverPodImport = true;
+          } else if (directive.uri.stringValue == 'package:riverpod_annotation/riverpod_annotation.dart') {
+            hasRiverPodAnnotationImport = true;
+          }
+        }
+      }
+
+      if (!hasRiverPodImport) {
+        throw MissingRiverpodImportError(unit.declaredElement!.source.fullName);
+      }
+
+      if (!hasRiverPodAnnotationImport) {
+        throw MissingRiverpodAnnotationImportError(unit.declaredElement!.source.fullName);
+      }
+
       for (final declaration in unit.declarations) {
         if (declaration is ClassDeclaration) {
           _generateForClass(declaration, buffer);
@@ -159,12 +180,12 @@ class RiverpodStatefulServiceGenerator extends ParserGenerator<RiverpodService> 
         if (p.isRequired) {
           named.write('required ');
         }
-        p.appendToWithoutDelimiters(named, withNullability: true);
+        p.appendToWithoutDelimiters(named);
         named.write(', ');
 
         constructorArguments.write('${p.name}: ${p.name}, ');
       } else {
-        p.appendToWithoutDelimiters(positioned, withNullability: true);
+        p.appendToWithoutDelimiters(positioned);
         positioned.write(', ');
         constructorArguments.write('${p.name}, ');
       }
@@ -192,15 +213,10 @@ class RiverpodStatefulServiceGenerator extends ParserGenerator<RiverpodService> 
                     ? _providerFamilyTypeTemplate
                     : _providerTypeTemplate,
           )
-          .replaceAll(
-              '%ExtensionsTemplate%',
-              keepAlive?.expression.toString() == 'true'
-                  ? _keepAliveExtensionsTemplate
-                  : _autoDisposeExtensionsTemplate)
           .replaceAll('%ServiceNameLower%', serviceNameLower)
           .replaceFirst('%RiverpodAnnotation%', annotationOut)
           .replaceAll('%ServiceName%', serviceClass.name)
-          .replaceAll('%State%', statefulServiceSupertype.typeArguments.first.getDisplayString(withNullability: true))
+          .replaceAll('%State%', statefulServiceSupertype.typeArguments.first.getDisplayString())
           .replaceFirst('%BuildParameters%', buildParameters.join(', '))
           .replaceFirst('%ConstructorArguments%', constructorArguments.toString())
           .replaceFirst('%CloseOnDispose%', closeOnDispose?.expression.toString() ?? 'true'),

@@ -1,3 +1,13 @@
+## 3.0.0
+
+- BREAKING: `StatefulService`s now wrap their state in a `ServiceState` object.
+- Add some more convenience methods to riverpod_stateful_service.
+- Remove exports of things in `riverpod_annotation` from `riverpod_stateful_service_annotation`, since
+  we cannot export all of them and it causes some confusion that is sometimes not detected until run
+  time.
+- `riverpod_stateful_service_generator` now requires both `riverpod` and `riverpod_stateful_service` to
+  be imported in the file where the `@riverpodService` annotation is used.
+
 ## 2.0.3
 
 - Hide invalid exports in riverpod_stateful_service_annotation
