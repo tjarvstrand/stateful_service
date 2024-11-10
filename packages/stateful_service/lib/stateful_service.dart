@@ -5,6 +5,8 @@ import 'package:logging/logging.dart';
 import 'package:meta/meta.dart';
 import 'package:synchronized/synchronized.dart';
 
+typedef ServiceError = ({Object error, StackTrace stackTrace});
+
 mixin StatefulServiceCache<S> {
   /// Initializes the cache and returns the cached state, if any.
   Future<S?> init();
@@ -20,16 +22,28 @@ mixin StatefulServiceCache<S> {
 }
 
 sealed class ServiceState<T> {
-  T get state;
-  (Object, StackTrace)? get error;
+  T get value;
+  ServiceError? get error;
   bool get isUpdating;
+
+  T2 map<T2>({
+    required T2 Function(ServiceStateIdle<T>) idle,
+    required T2 Function(ServiceStateUpdating<T>) updating,
+  });
+
+  T2? mapOrNull<T2>({
+    T2 Function(ServiceStateIdle<T>)? idle,
+    T2 Function(ServiceStateUpdating<T>)? updating,
+  });
+
+  ServiceState<T2> mapValue<T2>(T2 Function(T) f);
 }
 
 class ServiceStateUpdating<T> extends ServiceState<T> with EquatableMixin {
-  ServiceStateUpdating._(this.state, {required this.wasUpdating});
+  ServiceStateUpdating._(this.value, {required this.wasUpdating});
 
   @override
-  final T state;
+  final T value;
 
   /// False if this was the first state that was emitted as part of an update operation.
   final bool wasUpdating;
@@ -38,31 +52,59 @@ class ServiceStateUpdating<T> extends ServiceState<T> with EquatableMixin {
   bool get isUpdating => true;
 
   @override
-  (Object, StackTrace)? get error => null;
+  ServiceError? get error => null;
 
   @override
-  List<Object?> get props => [state, wasUpdating];
+  List<Object?> get props => [value, wasUpdating];
+
+  T2 map<T2>({
+    required T2 Function(ServiceStateIdle<T>) idle,
+    required T2 Function(ServiceStateUpdating<T>) updating,
+  }) =>
+      updating(this);
+
+  T2? mapOrNull<T2>({
+    T2 Function(ServiceStateIdle<T>)? idle,
+    T2 Function(ServiceStateUpdating<T>)? updating,
+  }) =>
+      updating?.call(this);
+
+  ServiceState<T2> mapValue<T2>(T2 Function(T) f) => ServiceStateUpdating._(f(value), wasUpdating: wasUpdating);
 }
 
 class ServiceStateIdle<T> extends ServiceState<T> with EquatableMixin {
-  ServiceStateIdle._(this.state, [this.error]);
+  ServiceStateIdle._(this.value, [this.error]);
 
   @override
-  final T state;
+  final T value;
 
   @override
   bool get isUpdating => false;
 
   @override
-  final (Object, StackTrace)? error;
+  final ServiceError? error;
 
   @override
-  List<Object?> get props => [state, error];
+  List<Object?> get props => [value, error];
+
+  T2 map<T2>({
+    required T2 Function(ServiceStateIdle<T>) idle,
+    required T2 Function(ServiceStateUpdating<T>) updating,
+  }) =>
+      idle(this);
+
+  T2? mapOrNull<T2>({
+    T2 Function(ServiceStateIdle<T>)? idle,
+    T2 Function(ServiceStateUpdating<T>)? updating,
+  }) =>
+      idle?.call(this);
+
+  ServiceState<T2> mapValue<T2>(T2 Function(T) f) => ServiceStateIdle._(f(value), error);
 }
 
 /// A base class for representing a stateful service.
 ///
-/// The service state is available through the [states] value stream but the only way to update it is by returning/
+/// The service state is available through the [values] value stream but the only way to update it is by returning/
 /// yielding new values from the provided callbacks. This allows us to serialize all state changes and reduce the risk
 /// of race conditions.
 abstract class StatefulService<S> {
@@ -70,6 +112,11 @@ abstract class StatefulService<S> {
   ///
   /// [name] is used only for logging purposes and defaults to this service's runtime type. A custom [Logger] can be
   /// supplied with the [logger] parameter.
+  ///
+  /// [init] is an optional function that can be used to asynchronously initialize the state of the service. If provided
+  /// it will be called with either the initial state or the state loaded from the cache, if any. The value returned
+  /// from this function will be emitted as the first state update, after which the [initComplete] future will also be
+  /// complete.
   ///
   /// If a cache is supplied, it's contents will be loaded as the first state update. After that, each updated state is
   /// persisted in the cache before it is emitted. If saving to the cache fails, the updated state will still be
@@ -82,32 +129,45 @@ abstract class StatefulService<S> {
     required S initialState,
     String? name,
     Logger? logger,
+    FutureOr<S> Function(S)? init,
     StatefulServiceCache<S>? cache,
     bool Function(S)? cacheValidator,
     bool Function(S previousState, S newState)? shouldStateBeEmitted,
-  })  : _state = ServiceStateIdle._(initialState),
+    this.verboseLogging = false,
+  })  : _state = init == null
+            ? ServiceStateIdle._(initialState) as ServiceState<S>
+            : ServiceStateUpdating._(initialState, wasUpdating: false),
         _name = name,
         _cache = cache,
         _shouldStateBeEmitted = shouldStateBeEmitted ?? ((a, b) => a != b) {
     _logger = logger ?? Logger(runtimeType.toString());
     final cache = _cache;
+
+    Future<S> runInit(S initialState) async {
+      try {
+        final state = await init?.call(initialState) ?? initialState;
+        await _addState(ServiceStateIdle._(state));
+        return state;
+      } catch (error, trace) {
+        _logger.severe('[${this.name}] Failed to run service init function', error, trace);
+        await _addState(ServiceStateIdle._(initialState, (error: error, stackTrace: trace)));
+        return initialState;
+      }
+    }
+
     if (cache == null) {
-      initComplete = Future.value(null);
+      initComplete = _lock.synchronized(() => runInit(initialState));
     } else {
       initComplete = _lock.synchronized(() async {
         final cachedState = await cache.init().onError((err, trace) {
-          _logger.severe(
-            '[$name] Failed to initialize ${cache.runtimeType}',
-            err,
-            trace,
-          );
+          _logger.severe('[${this.name}] Failed to initialize ${cache.runtimeType}', err, trace);
           return null;
         });
         if (cachedState != null && cacheValidator?.call(cachedState) != false) {
-          await _addState(ServiceStateIdle._(cachedState));
-          _logger.fine('[$name] State cache initialized');
+          _logger.fine('[${this.name}] State cache initialized');
+          return runInit(cachedState);
         } else {
-          await cache.put(initialState);
+          return runInit(initialState);
         }
       });
     }
@@ -122,24 +182,24 @@ abstract class StatefulService<S> {
   final Lock _lock = Lock();
   bool _isUpdating = false;
   bool _ignoreUpdates = false;
+  final bool verboseLogging;
 
   /// The provided name of this service, or the runtime type if none was provided.
   String get name => _name ?? runtimeType.toString();
 
-  /// A [Future] that completes when the service has finished initializing.
-  late final Future<void> initComplete;
-
-  Stream<ServiceState<S>> get serviceStates => _controller.stream;
+  /// A [Future] that completes when the service has finished initializing. It will contain the state's first emitted
+  /// state.
+  late final Future<S> initComplete;
 
   /// This stream emits the service's state whenever it changes, it will never emit errors.
-  Stream<S> get states => _controller.stream.expand((v) sync* {
+  Stream<S> get values => _controller.stream.expand((v) sync* {
         if (v is ServiceStateUpdating<S> && v.wasUpdating || v is ServiceStateIdle<S> && v.error != null) {
-          yield v.state;
+          yield v.value;
         }
       });
 
   /// This stream emits the service's state whenever it changes, it will never emit errors.
-  Stream<ServiceState<S>> get stateStream => _controller.stream;
+  Stream<ServiceState<S>> get states => _controller.stream;
 
   /// Returns true if this service has been closed. If this returns true, all calls to update the service's state will
   /// fail.
@@ -149,14 +209,10 @@ abstract class StatefulService<S> {
   bool get isUpdating => _isUpdating;
 
   /// The service's current state.
-  ServiceState<S> get serviceState => _state;
-
-  /// The service's current state's value.
-  S get state => _state.state;
+  ServiceState<S> get state => _state;
 
   /// Listens to the state stream and calls [onData] whenever a new state is emitted.
-  StreamSubscription<ServiceState<S>> listen(void Function(ServiceState<S> value) onData) =>
-      serviceStates.listen(onData);
+  StreamSubscription<ServiceState<S>> listen(void Function(ServiceState<S> value) onData) => states.listen(onData);
 
   /// Clears this service's state cache. Note that this will not affect the current state of the service.
   Future<void> clearCache() async => _cache?.clear();
@@ -207,19 +263,18 @@ abstract class StatefulService<S> {
       }
 
       _isUpdating = true;
-      await _addState(ServiceStateUpdating._(_state.state, wasUpdating: false), false);
+      await _addState(ServiceStateUpdating._(_state.value, wasUpdating: false), false);
 
-      var savePoint = _state.state;
+      var savePoint = _state.value;
       var previous = savePoint;
       try {
-        await updates(savePoint, () => savePoint = previous).forEach((value) {
-          if (!_shouldStateBeEmitted(previous, value)) return;
+        await updates(savePoint, () => savePoint = previous).asyncMap((value) async {
           previous = value;
-          _addState(ServiceStateUpdating._(value, wasUpdating: true));
-        });
-        await _addState(ServiceStateIdle._(_state.state));
+          await _addState(ServiceStateUpdating._(value, wasUpdating: true));
+        }).last;
+        await _addState(ServiceStateIdle._(_state.value));
       } catch (error, trace) {
-        await _addState(ServiceStateIdle._(savePoint, (error, trace)));
+        await _addState(ServiceStateIdle._(savePoint, (error: error, stackTrace: trace)));
         rethrow;
       } finally {
         _ignoreUpdates = false;
@@ -233,14 +288,26 @@ abstract class StatefulService<S> {
     final cache = _cache;
     if (cache != null && shouldCache) {
       try {
-        await cache.put(state.state);
-        _logger.fine('[$name] State written to cache');
+        await cache.put(state.value);
+        if (verboseLogging) {
+          _logger.finer('[$name] State written to cache');
+        }
       } catch (err, trace) {
         _logger.severe('[$name] Failed to write to ${_cache.runtimeType}', err, trace);
       }
     }
+    final shouldBeEmitted = _shouldStateBeEmitted(_state.value, state.value);
     _state = state;
-    _controller.add(state);
+    if (shouldBeEmitted) {
+      _controller.add(state);
+    }
+    if (verboseLogging) {
+      if (_logger.level >= Level.FINEST) {
+        _logger.finest('[$name] State updated\n$state');
+      } else {
+        _logger.finer('[$name] State updated');
+      }
+    }
   }
 
   /// Closes the service. Any in-flight update operations will be discarded and further calls to update the service

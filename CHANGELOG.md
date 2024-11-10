@@ -1,3 +1,13 @@
+## 4.0.0
+
+- BREAKING: Renamed the `ServiceState.state` to `ServiceState.value`.
+- BREAKING: Created a separate `ServiceError` type instead of using a tuple.
+- Added convenience methods `map`, `mapOrNull`, and `mapValue` on `ServiceState`.
+- Changed shared_preferences_stateful_service_cache to use the new async API for shared_preferences.
+- Added an init function to allow for potentially asynchronous initialization of the service
+  state before initialization is reported complete.
+- Added some more logging, and a `verboseLogging` flag.
+
 ## 3.0.0
 
 - BREAKING: `StatefulService`s now wrap their state in a `ServiceState` object.

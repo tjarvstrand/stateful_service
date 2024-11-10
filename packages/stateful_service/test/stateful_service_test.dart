@@ -33,23 +33,24 @@ class TestCache with StatefulServiceCache<int> {
 
 void main() {
   Logger.root.level = Level.OFF;
+
   late TestService service;
 
   group('StatefulService', () {
     group('update', () {
       setUp(() => service = TestService(initialState: 0));
       tearDown(() => service.close());
-      test('updates the service state', () async {
+      test('updates the service state with single values', () async {
         await service.update((state) => state + 1);
-        expect(service.serviceState.state, 1);
+        expect(service.state.value, 1);
         await service.update((state) => state + 1);
-        expect(service.serviceState.state, 2);
+        expect(service.state.value, 2);
         await service.close();
       });
       test('keeps the state when an update fails', () async {
         await service.update((state) => state + 1);
         await service.update((_) => Future.error(Exception('Failed'))).onError((_, __) => null);
-        expect(service.serviceState.state, 1);
+        expect(service.state.value, 1);
       });
       test('Drops concurrent updates if ignoreConcurrentRequests is true', () async {
         final update1Started = Completer();
@@ -64,7 +65,7 @@ void main() {
         update1CanComplete.complete();
         await update1;
         await update2;
-        expect(service.serviceState.state, 1);
+        expect(service.state.value, 1);
         await service.close();
       });
       test('Fails if the service is closed', () async {
@@ -77,7 +78,7 @@ void main() {
       tearDown(() => service.close());
       test('updates the service state', () async {
         await service.initComplete;
-        final values = service.states.take(4).toList();
+        final values = service.values.take(4).toList();
         await service.streamUpdates((state, _) async* {
           yield state + 1;
           yield state + 2;
@@ -89,7 +90,7 @@ void main() {
         expect(await values, [1, 2, 3, 4]);
       });
       test('Rolls back the state when an update fails', () async {
-        final values = service.states.take(2).toList();
+        final values = service.values.take(2).toList();
         await service.streamUpdates((state, _) async* {
           yield state + 1;
           throw Exception('Failed');
@@ -97,7 +98,7 @@ void main() {
         expect(await values, [1, 0]);
       });
       test('Rolls back the state to the last save point when an update fails', () async {
-        final values = service.states.take(3).toList();
+        final values = service.values.take(3).toList();
         await service.streamUpdates((state, save) async* {
           yield state + 1;
           save();
@@ -119,7 +120,7 @@ void main() {
         update1CanComplete.complete();
         await update1;
         await update2;
-        expect(service.serviceState.state, 2);
+        expect(service.state.value, 2);
       });
       test('Fails if the service is closed', () async {
         await service.close();
@@ -134,20 +135,20 @@ void main() {
         cache.value = 1;
         service = TestService(initialState: 0, cache: cache);
         await service.initComplete;
-        expect(service.serviceState.state, 1);
+        expect(service.state.value, 1);
       });
       test('is updated if empty when initializing the service', () async {
         cache.value = null;
         service = TestService(initialState: 0, cache: cache);
         await service.initComplete;
-        expect(service.serviceState.state, 0);
+        expect(service.state.value, 0);
       });
       test('is updated when updating the service state', () async {
         cache.value = 1;
         service = TestService(initialState: 0, cache: cache);
         await service.initComplete;
         await service.update((state) => 2);
-        expect(service.serviceState.state, 2);
+        expect(service.state.value, 2);
       });
       test('can be cleared by the service', () async {
         cache.value = null;
@@ -163,7 +164,7 @@ void main() {
         await service.initComplete;
         await service.update((state) => -2);
         expect(cache.value, 1);
-        expect(service.serviceState.state, -2);
+        expect(service.state.value, -2);
       });
     });
   });

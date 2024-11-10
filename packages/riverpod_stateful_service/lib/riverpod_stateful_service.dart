@@ -18,13 +18,21 @@ typedef AutoDisposeStatefulServiceNotifierProviderFamily<Service extends Statefu
 extension StatefulServiceNotifierProviderExt<Service extends StatefulService<State>, State>
     on StateNotifierProvider<StatefulServiceNotifier<Service, State>, ServiceState<State>> {
   ProviderListenable<Service> get service => notifier.select((it) => it.service);
-  ProviderListenable<State> get state => select((it) => it.state);
+  ProviderListenable<State> get state => select((it) => it.value);
 }
 
 extension AutoDisposeStatefulServiceNotifierProviderExt<Service extends StatefulService<State>, State>
     on AutoDisposeStateNotifierProvider<StatefulServiceNotifier<Service, State>, ServiceState<State>> {
   ProviderListenable<Service> get service => notifier.select((it) => it.service);
-  ProviderListenable<State> get state => select((it) => it.state);
+  ProviderListenable<State> get state => select((it) => it.value);
+}
+
+extension ServiceStateExt<T> on ServiceState<T> {
+  AsyncValue<T> get asAsyncValue => isUpdating
+      ? AsyncValue.loading()
+      : error != null
+          ? AsyncValue.error(error!.error, error!.stackTrace)
+          : AsyncValue.data(value);
 }
 
 StatefulServiceNotifierProvider<Service, State> statefulServiceProvider<Service extends StatefulService<State>, State>(
@@ -60,7 +68,7 @@ class StatefulServiceNotifier<Service extends StatefulService<State>, State>
   /// If [closeOnDispose] is true, [service] will be closed when this notifier is disposed.
   StatefulServiceNotifier(this.service, {bool closeOnDispose = true})
       : _closeOnDispose = closeOnDispose,
-        super(service.serviceState) {
+        super(service.state) {
     _subscription = service.listen((state) {
       if (mounted) this.state = state;
     });

@@ -28,9 +28,3 @@ class UserService extends StatefulService<User> {
   ...
 }
 ```
-
-### Caveats
-
-Since shared_preferences keeps all its data in memory, it's not recommended to use this cache for
-services with large states. In such cases, consider using a different cache implementation.
-

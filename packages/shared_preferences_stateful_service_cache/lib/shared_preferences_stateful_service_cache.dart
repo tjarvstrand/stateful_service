@@ -6,17 +6,19 @@ import 'package:stateful_service/stateful_service.dart';
 class SharedPreferencesStatefulServiceCache<S> with StatefulServiceCache<S> {
   SharedPreferencesStatefulServiceCache({
     required String key,
-    required String Function(S) encode,
+    required String? Function(S) encode,
     required S Function(String) decode,
     bool clearOnDecodingError = true,
+    SharedPreferencesAsync? sharedPreferences,
   })  : _key = key,
         _toString = encode,
         _fromString = decode,
-        _clearOnDecodingError = clearOnDecodingError;
+        _clearOnDecodingError = clearOnDecodingError,
+        _prefs = sharedPreferences ?? SharedPreferencesAsync();
 
-  late final SharedPreferences _prefs;
+  final SharedPreferencesAsync _prefs;
   final String _key;
-  final String Function(S) _toString;
+  final String? Function(S) _toString;
   final S Function(String) _fromString;
   final bool _clearOnDecodingError;
 
@@ -24,8 +26,7 @@ class SharedPreferencesStatefulServiceCache<S> with StatefulServiceCache<S> {
   @override
   @mustCallSuper
   Future<S?> init() async {
-    _prefs = await SharedPreferences.getInstance();
-    final cachedValue = _prefs.getString(_key);
+    final cachedValue = await _prefs.getString(_key);
     if (cachedValue == null) return null;
     try {
       return _fromString(cachedValue);
@@ -44,7 +45,12 @@ class SharedPreferencesStatefulServiceCache<S> with StatefulServiceCache<S> {
 
   /// Persists the provided state in [SharedPreferences].
   @override
-  Future<void> put(S state) async => _prefs.setString(_key, _toString(state));
+  Future<void> put(S state) async {
+    final string = _toString(state);
+    if (string != null) {
+      await _prefs.setString(_key, string);
+    }
+  }
 
   /// Clears the cache by removing the value from [SharedPreferences].
   @override
