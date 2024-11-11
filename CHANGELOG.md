@@ -1,3 +1,11 @@
+## 4.1.0
+
+- shared_preferences_stateful_service_cache encoders and decoders now return a FutureOr<String> to
+  allow offloading of expensive operations to a separate isolate.
+- Fixed riverpod_stateful_service to use new name for `ServiceState.value`.
+- Renamed riverpod_stateful_service_generator extension methods to reflect the new name for
+  `ServiceState.value`.
+
 ## 4.0.0
 
 - BREAKING: Renamed the `ServiceState.state` to `ServiceState.value`.

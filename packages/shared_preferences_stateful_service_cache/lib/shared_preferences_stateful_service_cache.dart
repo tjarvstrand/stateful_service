@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:meta/meta.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:stateful_service/stateful_service.dart';
@@ -6,8 +8,8 @@ import 'package:stateful_service/stateful_service.dart';
 class SharedPreferencesStatefulServiceCache<S> with StatefulServiceCache<S> {
   SharedPreferencesStatefulServiceCache({
     required String key,
-    required String? Function(S) encode,
-    required S Function(String) decode,
+    required FutureOr<String?>? Function(S) encode,
+    required FutureOr<S> Function(String) decode,
     bool clearOnDecodingError = true,
     SharedPreferencesAsync? sharedPreferences,
   })  : _key = key,
@@ -18,8 +20,8 @@ class SharedPreferencesStatefulServiceCache<S> with StatefulServiceCache<S> {
 
   final SharedPreferencesAsync _prefs;
   final String _key;
-  final String? Function(S) _toString;
-  final S Function(String) _fromString;
+  final FutureOr<String?>? Function(S) _toString;
+  final FutureOr<S> Function(String) _fromString;
   final bool _clearOnDecodingError;
 
   /// Initializes the cache by loading the state from [SharedPreferences].
@@ -46,7 +48,7 @@ class SharedPreferencesStatefulServiceCache<S> with StatefulServiceCache<S> {
   /// Persists the provided state in [SharedPreferences].
   @override
   Future<void> put(S state) async {
-    final string = _toString(state);
+    final string = await _toString(state);
     if (string != null) {
       await _prefs.setString(_key, string);
     }

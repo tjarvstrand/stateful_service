@@ -37,7 +37,7 @@ const template = r'''
 %ProviderTypeTemplate%
 extension %ServiceName%NotifierProviderExt on %ServiceName%NotifierProvider {
   ProviderListenable<%ServiceName%> get service => notifier.select((n) => n.service);
-  ProviderListenable<%State%> get state => select((s) => s.state);
+  ProviderListenable<%State%> get value => select((s) => s.value);
 }
 
 %RiverpodAnnotation%
@@ -52,7 +52,7 @@ class _$%ServiceName%Notifier extends _$$%ServiceName%Notifier {
         service.close();
       }
     });
-    return service.serviceState;
+    return service.state;
   }
   
   late %ServiceName% service;

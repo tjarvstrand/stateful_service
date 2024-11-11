@@ -18,13 +18,13 @@ typedef AutoDisposeStatefulServiceNotifierProviderFamily<Service extends Statefu
 extension StatefulServiceNotifierProviderExt<Service extends StatefulService<State>, State>
     on StateNotifierProvider<StatefulServiceNotifier<Service, State>, ServiceState<State>> {
   ProviderListenable<Service> get service => notifier.select((it) => it.service);
-  ProviderListenable<State> get state => select((it) => it.value);
+  ProviderListenable<State> get value => select((it) => it.value);
 }
 
 extension AutoDisposeStatefulServiceNotifierProviderExt<Service extends StatefulService<State>, State>
     on AutoDisposeStateNotifierProvider<StatefulServiceNotifier<Service, State>, ServiceState<State>> {
   ProviderListenable<Service> get service => notifier.select((it) => it.service);
-  ProviderListenable<State> get state => select((it) => it.value);
+  ProviderListenable<State> get value => select((it) => it.value);
 }
 
 extension ServiceStateExt<T> on ServiceState<T> {
