@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+set -e
+
+export THIS_DIR=$(cd $(dirname "${BASH_SOURCE[$((${#BASH_SOURCE[@]} - 1))]}"); pwd)
+
+cd "${THIS_DIR}/.."
+
+function publish {
+    cd packages/$1
+    if [ -f pubspec_overrides.yaml ]; then
+        mv -v pubspec_overrides.yaml _pubspec_overrides.yaml
+    fi
+    flutter pub publish --force
+    if [ -f _pubspec_overrides.yaml ]; then
+      mv -v _pubspec_overrides.yaml pubspec_overrides.yaml
+    fi
+}
+
+(publish stateful_service)
+(publish shared_preferences_stateful_service_cache)
+(publish riverpod_stateful_service)
+(publish riverpod_stateful_service_annotation)
+(publish riverpod_stateful_service_generator)
