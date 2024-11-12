@@ -5,8 +5,6 @@ import 'package:logging/logging.dart';
 import 'package:meta/meta.dart';
 import 'package:synchronized/synchronized.dart';
 
-typedef ServiceError = ({Object error, StackTrace stackTrace});
-
 mixin StatefulServiceCache<S> {
   /// Initializes the cache and returns the cached state, if any.
   Future<S?> init();
@@ -23,20 +21,23 @@ mixin StatefulServiceCache<S> {
 
 sealed class ServiceState<T> {
   T get value;
-  ServiceError? get error;
+  Object? get error;
+  StackTrace? get stackTrace;
   bool get isUpdating;
 
-  T2 map<T2>({
+  T2 when<T2>({
     required T2 Function(ServiceStateIdle<T>) idle,
     required T2 Function(ServiceStateUpdating<T>) updating,
+    required T2 Function(ServiceStateError<T>) error,
   });
 
-  T2? mapOrNull<T2>({
+  T2? whenOrNull<T2>({
     T2 Function(ServiceStateIdle<T>)? idle,
     T2 Function(ServiceStateUpdating<T>)? updating,
+    T2 Function(ServiceStateError<T>)? error,
   });
 
-  ServiceState<T2> mapValue<T2>(T2 Function(T) f);
+  ServiceState<T2> map<T2>(T2 Function(T) f);
 }
 
 class ServiceStateUpdating<T> extends ServiceState<T> with EquatableMixin {
@@ -52,28 +53,72 @@ class ServiceStateUpdating<T> extends ServiceState<T> with EquatableMixin {
   bool get isUpdating => true;
 
   @override
-  ServiceError? get error => null;
+  final Object? error = null;
+
+  @override
+  final StackTrace? stackTrace = null;
 
   @override
   List<Object?> get props => [value, wasUpdating];
 
-  T2 map<T2>({
+  @override
+  T2 when<T2>({
     required T2 Function(ServiceStateIdle<T>) idle,
     required T2 Function(ServiceStateUpdating<T>) updating,
+    required T2 Function(ServiceStateError<T>) error,
   }) =>
       updating(this);
 
-  T2? mapOrNull<T2>({
+  @override
+  T2? whenOrNull<T2>({
     T2 Function(ServiceStateIdle<T>)? idle,
     T2 Function(ServiceStateUpdating<T>)? updating,
+    T2 Function(ServiceStateError<T>)? error,
   }) =>
       updating?.call(this);
 
-  ServiceState<T2> mapValue<T2>(T2 Function(T) f) => ServiceStateUpdating._(f(value), wasUpdating: wasUpdating);
+  @override
+  ServiceState<T2> map<T2>(T2 Function(T) f) => ServiceStateUpdating._(f(value), wasUpdating: wasUpdating);
 }
 
 class ServiceStateIdle<T> extends ServiceState<T> with EquatableMixin {
-  ServiceStateIdle._(this.value, [this.error]);
+  ServiceStateIdle._(this.value);
+
+  @override
+  final T value;
+
+  @override
+  bool isUpdating = false;
+
+  @override
+  final Object? error = null;
+
+  @override
+  final StackTrace? stackTrace = null;
+
+  @override
+  List<Object?> get props => [value];
+
+  @override
+  T2 when<T2>({
+    required T2 Function(ServiceStateIdle<T>) idle,
+    required T2 Function(ServiceStateUpdating<T>) updating,
+    required T2 Function(ServiceStateError<T>) error,
+  }) =>
+      idle(this);
+
+  T2? whenOrNull<T2>({
+    T2 Function(ServiceStateIdle<T>)? idle,
+    T2 Function(ServiceStateUpdating<T>)? updating,
+    T2 Function(ServiceStateError<T>)? error,
+  }) =>
+      idle?.call(this);
+
+  ServiceState<T2> map<T2>(T2 Function(T) f) => ServiceStateIdle._(f(value));
+}
+
+class ServiceStateError<T> extends ServiceState<T> with EquatableMixin {
+  ServiceStateError._(this.value, this.error, this.stackTrace);
 
   @override
   final T value;
@@ -82,24 +127,30 @@ class ServiceStateIdle<T> extends ServiceState<T> with EquatableMixin {
   bool get isUpdating => false;
 
   @override
-  final ServiceError? error;
+  final Object error;
 
   @override
-  List<Object?> get props => [value, error];
+  final StackTrace stackTrace;
 
-  T2 map<T2>({
+  @override
+  List<Object?> get props => [value, error, stackTrace];
+
+  @override
+  T2 when<T2>({
     required T2 Function(ServiceStateIdle<T>) idle,
     required T2 Function(ServiceStateUpdating<T>) updating,
+    required T2 Function(ServiceStateError<T>) error,
   }) =>
-      idle(this);
+      error(this);
 
-  T2? mapOrNull<T2>({
+  T2? whenOrNull<T2>({
     T2 Function(ServiceStateIdle<T>)? idle,
     T2 Function(ServiceStateUpdating<T>)? updating,
+    T2 Function(ServiceStateError<T>)? error,
   }) =>
-      idle?.call(this);
+      error?.call(this);
 
-  ServiceState<T2> mapValue<T2>(T2 Function(T) f) => ServiceStateIdle._(f(value), error);
+  ServiceState<T2> map<T2>(T2 Function(T) f) => ServiceStateError._(f(value), error, stackTrace);
 }
 
 /// A base class for representing a stateful service.
@@ -150,7 +201,7 @@ abstract class StatefulService<S> {
         return state;
       } catch (error, trace) {
         _logger.severe('[${this.name}] Failed to run service init function', error, trace);
-        await _addState(ServiceStateIdle._(initialState, (error: error, stackTrace: trace)));
+        await _addState(ServiceStateError._(initialState, error, trace));
         return initialState;
       }
     }
@@ -244,7 +295,7 @@ abstract class StatefulService<S> {
   @protected
   @visibleForTesting
   Future<void> streamUpdates(
-    Stream<S> Function(S state, void Function() save) updates, {
+    Stream<S> Function(S state, S Function(S) setSavePoint) updates, {
     bool ignoreConcurrentUpdates = false,
   }) {
     if (isClosed) throw StateError('[$name] Cannot update a closed service');
@@ -266,15 +317,13 @@ abstract class StatefulService<S> {
       await _addState(ServiceStateUpdating._(_state.value, wasUpdating: false), false);
 
       var savePoint = _state.value;
-      var previous = savePoint;
       try {
-        await updates(savePoint, () => savePoint = previous).asyncMap((value) async {
-          previous = value;
-          await _addState(ServiceStateUpdating._(value, wasUpdating: true));
-        }).last;
+        await updates(savePoint, (newSavePoint) => savePoint = newSavePoint)
+            .asyncMap((value) => _addState(ServiceStateUpdating._(value, wasUpdating: true)))
+            .last;
         await _addState(ServiceStateIdle._(_state.value));
       } catch (error, trace) {
-        await _addState(ServiceStateIdle._(savePoint, (error: error, stackTrace: trace)));
+        await _addState(ServiceStateError._(savePoint, error, trace));
         rethrow;
       } finally {
         _ignoreUpdates = false;

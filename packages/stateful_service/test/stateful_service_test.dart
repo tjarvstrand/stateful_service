@@ -101,7 +101,7 @@ void main() {
         final values = service.values.take(3).toList();
         await service.streamUpdates((state, save) async* {
           yield state + 1;
-          save();
+          save(state + 1);
           yield state + 2;
           throw Exception('Failed');
         }).onError((_, __) {});

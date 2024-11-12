@@ -28,11 +28,11 @@ extension AutoDisposeStatefulServiceNotifierProviderExt<Service extends Stateful
 }
 
 extension ServiceStateExt<T> on ServiceState<T> {
-  AsyncValue<T> get asAsyncValue => isUpdating
-      ? AsyncValue.loading()
-      : error != null
-          ? AsyncValue.error(error!.error, error!.stackTrace)
-          : AsyncValue.data(value);
+  AsyncValue<T> get asAsyncValue => when(
+        idle: (state) => AsyncValue.data(state.value),
+        updating: (_) => AsyncValue.loading(),
+        error: (state) => AsyncValue.error(state.error, state.stackTrace),
+      );
 }
 
 StatefulServiceNotifierProvider<Service, State> statefulServiceProvider<Service extends StatefulService<State>, State>(

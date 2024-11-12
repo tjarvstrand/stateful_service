@@ -1,3 +1,13 @@
+## 5.0.0
+
+- BREAKING: The `setSavePoint` function now takes the new save point as a parameter, instead of
+  using the current state, to avoid race conditions.
+- BREAKING: Split the service error state out into a separate type
+- BREAKING: Renamed `map` and `mapOrNull` to `when` and `whenOrNull` to be more in line with
+  traditional naming and avoid confusion.
+- BREAKING: Renamed `mapValue` to `map` to be more in line with traditional naming and avoid
+  confusion.
+
 ## 4.1.0
 
 - shared_preferences_stateful_service_cache encoders and decoders now return a FutureOr<String> to
