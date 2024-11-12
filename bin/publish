@@ -6,15 +6,24 @@ export THIS_DIR=$(cd $(dirname "${BASH_SOURCE[$((${#BASH_SOURCE[@]} - 1))]}"); p
 
 cd "${THIS_DIR}/.."
 
+function latest-version {
+    curl -qs -H 'Accept: application/vnd.pub.v2+json' https://pub.dev/api/packages/$1 | jq -r '.latest.version'
+}
+
 function publish {
     cd packages/$1
     if [ -f pubspec_overrides.yaml ]; then
         mv -v pubspec_overrides.yaml _pubspec_overrides.yaml
     fi
+    VERSION=$(grep 'version:.*' pubspec.yaml | tr -d ' ' | cut -d ':' -f 2)
     flutter pub publish --force
     if [ -f _pubspec_overrides.yaml ]; then
       mv -v _pubspec_overrides.yaml pubspec_overrides.yaml
     fi
+    until [ "$(latest-version $1)" == "$VERSION" ]; do
+        echo 'Waiting...'
+        sleep 3
+    done
 }
 
 (publish stateful_service)
