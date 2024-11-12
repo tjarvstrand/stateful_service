@@ -1,3 +1,7 @@
+## 5.0.1
+
+- Fixed riverpod_stateful_service `asAsyncValue` to use new service state error type.
+
 ## 5.0.0
 
 - BREAKING: The `setSavePoint` function now takes the new save point as a parameter, instead of
