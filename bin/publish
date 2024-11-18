@@ -14,7 +14,7 @@ function publish {
     cd packages/$1
     VERSION=$(grep 'version:.*' pubspec.yaml | tr -d ' ' | cut -d ':' -f 2)
     if [ "$(latest-version $1)" == "$VERSION" ]; then
-        echo "$VERSION is already published"
+        echo "$1 $VERSION is already published"
         return 0
     fi
     if [ -f pubspec_overrides.yaml ]; then
