@@ -5,7 +5,7 @@ import 'package:stateful_service/stateful_service.dart';
 import 'package:test/test.dart';
 
 class TestService extends StatefulService<int> {
-  TestService({required super.initialState, super.cache, super.logger});
+  TestService({required super.initialState, super.init, super.cache, super.logger});
 }
 
 class TestCache with StatefulServiceCache<int> {
@@ -37,6 +37,14 @@ void main() {
   late TestService service;
 
   group('StatefulService', () {
+    group('initialization', () {
+      test('sets isInitializing when done', () async {
+        final service = TestService(initialState: 0, init: (_) => Future.delayed(const Duration(milliseconds: 300)));
+        expect(service.isInitializing, true);
+        await service.initComplete;
+        expect(service.isInitializing, false);
+      });
+    });
     group('update', () {
       setUp(() => service = TestService(initialState: 0));
       tearDown(() => service.close());
@@ -93,7 +101,6 @@ void main() {
         await service.initComplete;
         final values = service.states.take(3).toList();
         await service.streamUpdates((state, _) async* {
-          print('----');
           yield state + 1;
         });
         expect((await values)[0], isA<ServiceStateUpdating>());
@@ -107,7 +114,7 @@ void main() {
           throw Exception('Failed');
         }).onError((_, __) {});
         expect(await values, [1, 0]);
-      });
+      }, timeout: Timeout(Duration(seconds: 1)));
       test('Rolls back the state to the last save point when an update fails', () async {
         final values = service.values.take(3).toList();
         await service.streamUpdates((state, save) async* {

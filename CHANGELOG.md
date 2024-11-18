@@ -1,3 +1,8 @@
+## 5.0.3
+
+- Ensure that state updates are properly reflected in `values`-stream.
+- Add `isInitialized` getter to `StatefulService`
+
 ## 5.0.2
 
 - `shouldBeEmitted` should only be applied to updates that change the state's inner value.

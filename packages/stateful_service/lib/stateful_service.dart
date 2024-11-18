@@ -203,6 +203,8 @@ abstract class StatefulService<S> {
         _logger.severe('[${this.name}] Failed to run service init function', error, trace);
         await _addState(ServiceStateError._(initialState, error, trace));
         return initialState;
+      } finally {
+        _isInitializing = false;
       }
     }
 
@@ -231,6 +233,7 @@ abstract class StatefulService<S> {
   final StatefulServiceCache<S>? _cache;
   final bool Function(S state1, S state2) _shouldStateBeEmitted;
   final Lock _lock = Lock();
+  bool _isInitializing = true;
   bool _isUpdating = false;
   bool _ignoreUpdates = false;
   final bool verboseLogging;
@@ -241,13 +244,15 @@ abstract class StatefulService<S> {
   /// A [Future] that completes when the service has finished initializing. It will contain the state's first emitted
   /// state.
   late final Future<S> initComplete;
+  bool get isInitializing => _isInitializing;
 
   /// This stream emits the service's state whenever it changes, it will never emit errors.
-  Stream<S> get values => _controller.stream.expand((v) sync* {
-        if (v is ServiceStateUpdating<S> && v.wasUpdating || v is ServiceStateIdle<S> && v.error != null) {
-          yield v.value;
+  Stream<S> get values => _controller.stream.expand<S>((v) sync* {
+        if (v is ServiceStateUpdating<S> && !v.wasUpdating) {
+          return;
         }
-      });
+        yield v.value;
+      }).distinct((v1, v2) => !_shouldStateBeEmitted(v1, v2));
 
   /// This stream emits the service's state whenever it changes, it will never emit errors.
   Stream<ServiceState<S>> get states => _controller.stream;
