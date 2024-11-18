@@ -12,10 +12,14 @@ function latest-version {
 
 function publish {
     cd packages/$1
+    VERSION=$(grep 'version:.*' pubspec.yaml | tr -d ' ' | cut -d ':' -f 2)
+    if [ "$(latest-version $1)" == "$VERSION" ]; then
+        echo "$VERSION is already published"
+        return 0
+    fi
     if [ -f pubspec_overrides.yaml ]; then
         mv -v pubspec_overrides.yaml _pubspec_overrides.yaml
     fi
-    VERSION=$(grep 'version:.*' pubspec.yaml | tr -d ' ' | cut -d ':' -f 2)
     flutter pub publish --force
     if [ -f _pubspec_overrides.yaml ]; then
       mv -v _pubspec_overrides.yaml pubspec_overrides.yaml
