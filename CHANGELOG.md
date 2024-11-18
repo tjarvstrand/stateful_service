@@ -1,3 +1,9 @@
+## 5.0.2
+
+- `shouldBeEmitted` should only be applied to updates that change the state's inner value.
+- `riverpod_stateful_service` now logs errors instead of throwing exceptions when there are missing
+  imports.
+
 ## 5.0.1
 
 - Fixed riverpod_stateful_service `asAsyncValue` to use new service state error type.

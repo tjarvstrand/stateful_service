@@ -315,12 +315,13 @@ abstract class StatefulService<S> {
 
       _isUpdating = true;
       await _addState(ServiceStateUpdating._(_state.value, wasUpdating: false), false);
-
       var savePoint = _state.value;
       try {
-        await updates(savePoint, (newSavePoint) => savePoint = newSavePoint)
-            .asyncMap((value) => _addState(ServiceStateUpdating._(value, wasUpdating: true)))
-            .last;
+        await updates(savePoint, (newSavePoint) => savePoint = newSavePoint).asyncMap((value) async {
+          if (_shouldStateBeEmitted(_state.value, value)) {
+            await _addState(ServiceStateUpdating._(value, wasUpdating: true));
+          }
+        }).last;
         await _addState(ServiceStateIdle._(_state.value));
       } catch (error, trace) {
         await _addState(ServiceStateError._(savePoint, error, trace));
@@ -334,6 +335,15 @@ abstract class StatefulService<S> {
 
   Future<void> _addState(ServiceState<S> state, [bool shouldCache = true]) async {
     if (isClosed) return;
+    _state = state;
+    _controller.add(state);
+    if (verboseLogging) {
+      if (_logger.level >= Level.FINEST) {
+        _logger.finest('[$name] State updated\n$state');
+      } else {
+        _logger.finer('[$name] State updated');
+      }
+    }
     final cache = _cache;
     if (cache != null && shouldCache) {
       try {
@@ -343,18 +353,6 @@ abstract class StatefulService<S> {
         }
       } catch (err, trace) {
         _logger.severe('[$name] Failed to write to ${_cache.runtimeType}', err, trace);
-      }
-    }
-    final shouldBeEmitted = _shouldStateBeEmitted(_state.value, state.value);
-    _state = state;
-    if (shouldBeEmitted) {
-      _controller.add(state);
-    }
-    if (verboseLogging) {
-      if (_logger.level >= Level.FINEST) {
-        _logger.finest('[$name] State updated\n$state');
-      } else {
-        _logger.finer('[$name] State updated');
       }
     }
   }

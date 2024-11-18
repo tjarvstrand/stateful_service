@@ -89,6 +89,17 @@ void main() {
         });
         expect(await values, [1, 2, 3, 4]);
       });
+      test('Emits ServiceStateUpdating', () async {
+        await service.initComplete;
+        final values = service.states.take(3).toList();
+        await service.streamUpdates((state, _) async* {
+          print('----');
+          yield state + 1;
+        });
+        expect((await values)[0], isA<ServiceStateUpdating>());
+        expect((await values)[1], isA<ServiceStateUpdating>());
+        expect((await values)[2], isA<ServiceStateIdle>());
+      });
       test('Rolls back the state when an update fails', () async {
         final values = service.values.take(2).toList();
         await service.streamUpdates((state, _) async* {

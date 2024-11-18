@@ -68,28 +68,6 @@ Future<void> main() async {
 
   group('Validations', () {
     test(
-      'Missing riverpod import',
-      () => expect(
-        () async => testBuilder(
-          riverpodServiceBuilder(_builderOptions),
-          resource('fail_missing_riverpod_import'),
-          reader: await PackageAssetReader.currentIsolate(),
-        ),
-        throwsA(isA<MissingRiverpodImportError>()),
-      ),
-    );
-    test(
-      'Missing riverpod annotation import',
-      () => expect(
-        () async => testBuilder(
-          riverpodServiceBuilder(_builderOptions),
-          resource('fail_missing_riverpod_annotation_import'),
-          reader: await PackageAssetReader.currentIsolate(),
-        ),
-        throwsA(isA<MissingRiverpodAnnotationImportError>()),
-      ),
-    );
-    test(
       'Missing extends',
       () => expect(
         () async => testBuilder(

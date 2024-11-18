@@ -1,6 +1,7 @@
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
+import 'package:build/build.dart';
 import 'package:collection/collection.dart';
 import 'package:meta/meta.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -77,19 +78,6 @@ class MissingUnnamedConstructorError extends InvalidGenerationSourceError {
       : super('The class $name must declare an unnamed constructor');
 }
 
-class MissingImportError extends InvalidGenerationSourceError {
-  MissingImportError(String file, String import, {super.todo = '', super.element})
-      : super('The file $file must import $import');
-}
-
-class MissingRiverpodImportError extends MissingImportError {
-  MissingRiverpodImportError(String file) : super(file, 'riverpod.dart');
-}
-
-class MissingRiverpodAnnotationImportError extends MissingImportError {
-  MissingRiverpodAnnotationImportError(String file) : super(file, 'riverpod_annotation.dart');
-}
-
 @immutable
 class RiverpodStatefulServiceGenerator extends ParserGenerator<RiverpodService> {
   @override
@@ -108,12 +96,13 @@ class RiverpodStatefulServiceGenerator extends ParserGenerator<RiverpodService> 
         }
       }
 
+      final fileName = unit.declaredElement!.source.fullName;
       if (!hasRiverPodImport) {
-        throw MissingRiverpodImportError(unit.declaredElement!.source.fullName);
+        log.severe('The file $fileName must import riverpod.dart');
       }
 
       if (!hasRiverPodAnnotationImport) {
-        throw MissingRiverpodAnnotationImportError(unit.declaredElement!.source.fullName);
+        log.severe('The file $fileName must import riverpod_annotation.dart');
       }
 
       for (final declaration in unit.declarations) {
