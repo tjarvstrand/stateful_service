@@ -3,7 +3,7 @@ description: >
   This package provides a lightweight stateful_service wrapper for Riverpod.
   
   See the stateful_service package for more information.
-version: 5.0.3
+version: 5.0.4
 homepage: https://github.com/tjarvstrand/stateful_service
 
 environment:
@@ -11,7 +11,7 @@ environment:
 
 dependencies:
   riverpod: ^2.6.1
-  stateful_service: ^5.0.3
+  stateful_service: ^5.0.4
 
 dev_dependencies:
   flutter_lints:

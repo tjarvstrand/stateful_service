@@ -1,3 +1,7 @@
+## 5.0.4
+
+- Don't crash on empty stream in `streamUpdates`
+
 ## 5.0.3
 
 - Ensure that state updates are properly reflected in `values`-stream.

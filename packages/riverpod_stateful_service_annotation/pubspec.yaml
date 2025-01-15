@@ -4,7 +4,7 @@ description: >
   generate stateful service providers for Riverpod.
   
   See the stateful_service package for more information.
-version: 5.0.3
+version: 5.0.4
 homepage: https://github.com/tjarvstrand/stateful_service
 
 environment:
@@ -14,7 +14,7 @@ dependencies:
   meta: ^1.11.0
   riverpod: ^2.6.1
   riverpod_annotation: ^2.6.1
-  stateful_service: ^5.0.3
+  stateful_service: ^5.0.4
 
 dev_dependencies:
   flutter_lints:
