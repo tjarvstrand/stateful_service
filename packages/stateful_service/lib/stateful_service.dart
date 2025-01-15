@@ -326,7 +326,7 @@ abstract class StatefulService<S> {
           if (_shouldStateBeEmitted(_state.value, value)) {
             await _addState(ServiceStateUpdating._(value, wasUpdating: true));
           }
-        }).last;
+        }).length;
         await _addState(ServiceStateIdle._(_state.value));
       } catch (error, trace) {
         await _addState(ServiceStateError._(savePoint, error, trace));

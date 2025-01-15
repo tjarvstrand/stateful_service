@@ -1,6 +1,14 @@
+## 5.1.1
+
+- Re-apply changes from 5.0.4 that were lost in the 5.1.0 release.
+
 ## 5.1.0
 
 - Add `Loader` utility class.
+
+## 5.0.4
+
+- Don't crash on empty stream in `streamUpdates`
 
 ## 5.0.3
 

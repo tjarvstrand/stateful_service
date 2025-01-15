@@ -144,6 +144,9 @@ void main() {
         await service.close();
         expect(() => service.streamUpdates((_, __) => const Stream.empty()), throwsStateError);
       });
+      test('Does not fail if there are no updates', () async {
+        await service.streamUpdates((_, __) => const Stream.empty());
+      });
     });
     group('cache', () {
       final cache = TestCache(null);
