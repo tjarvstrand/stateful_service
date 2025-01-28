@@ -6,6 +6,11 @@ export THIS_DIR=$(cd $(dirname "${BASH_SOURCE[$((${#BASH_SOURCE[@]} - 1))]}"); p
 
 cd "${THIS_DIR}/.."
 
+if [ "$(git rev-parse --abbrev-ref HEAD)" != 'main' ]; then
+    echo "Error: Not on main..."
+    exit 1
+fi
+
 function latest-version {
     curl -qs -H 'Accept: application/vnd.pub.v2+json' https://pub.dev/api/packages/$1 | jq -r '.latest.version'
 }
