@@ -1,3 +1,7 @@
+## 5.1.0
+
+- Add `Loader` utility class.
+
 ## 5.0.3
 
 - Ensure that state updates are properly reflected in `values`-stream.
