@@ -21,8 +21,12 @@ function publish {
         mv -v pubspec_overrides.yaml _pubspec_overrides.yaml
     fi
     flutter pub publish --force
+    RESULT=$?
     if [ -f _pubspec_overrides.yaml ]; then
       mv -v _pubspec_overrides.yaml pubspec_overrides.yaml
+    fi
+    if [ $RESULT -ne 0 ]; then
+        return $RESULT
     fi
     until [ "$(latest-version $1)" == "$VERSION" ]; do
         echo 'Waiting...'
