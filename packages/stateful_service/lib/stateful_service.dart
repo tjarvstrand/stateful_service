@@ -288,6 +288,16 @@ abstract class StatefulService<S> {
         return Stream.value(u);
       }, ignoreConcurrentUpdates: ignoreConcurrentUpdates);
 
+  /// Sets the service's state to the provided value directly, without needing changing the service into an intermediate
+  /// loading state.
+  ///
+  /// If [ignoreConcurrentUpdates] is true, any other state updates will be dropped, rather than queued, until the
+  /// update has been resolved.
+  @protected
+  @visibleForTesting
+  Future<void> set(S value, {bool ignoreConcurrentUpdates = false}) =>
+      _update(() => _addState(ServiceStateIdle._(value)), ignoreConcurrentUpdates: ignoreConcurrentUpdates);
+
   /// Performs a series of updates of service's state with the values emitted from the stream returned by [updates]. The
   /// service state will be locked (no other updates can take place) until the stream completes. [update] receives two
   /// arguments; the service's current state, and a function to call to save the current state as a savepoint.
@@ -302,7 +312,24 @@ abstract class StatefulService<S> {
   Future<void> streamUpdates(
     Stream<S> Function(S state, S Function(S) setSavePoint) updates, {
     bool ignoreConcurrentUpdates = false,
-  }) {
+  }) =>
+      _update(() async {
+        var savePoint = _state.value;
+        try {
+          await _addState(ServiceStateUpdating._(_state.value, wasUpdating: false), false);
+          await updates(savePoint, (newSavePoint) => savePoint = newSavePoint).asyncMap((value) async {
+            if (_shouldStateBeEmitted(_state.value, value)) {
+              await _addState(ServiceStateUpdating._(value, wasUpdating: true));
+            }
+          }).length;
+          await _addState(ServiceStateIdle._(_state.value));
+        } catch (error, trace) {
+          await _addState(ServiceStateError._(savePoint, error, trace));
+          rethrow;
+        }
+      }, ignoreConcurrentUpdates: ignoreConcurrentUpdates);
+
+  Future<void> _update(Future<void> Function() update, {bool ignoreConcurrentUpdates = false}) async {
     if (isClosed) throw StateError('[$name] Cannot update a closed service');
 
     if (_ignoreUpdates) {
@@ -319,18 +346,8 @@ abstract class StatefulService<S> {
       }
 
       _isUpdating = true;
-      await _addState(ServiceStateUpdating._(_state.value, wasUpdating: false), false);
-      var savePoint = _state.value;
       try {
-        await updates(savePoint, (newSavePoint) => savePoint = newSavePoint).asyncMap((value) async {
-          if (_shouldStateBeEmitted(_state.value, value)) {
-            await _addState(ServiceStateUpdating._(value, wasUpdating: true));
-          }
-        }).length;
-        await _addState(ServiceStateIdle._(_state.value));
-      } catch (error, trace) {
-        await _addState(ServiceStateError._(savePoint, error, trace));
-        rethrow;
+        await update();
       } finally {
         _ignoreUpdates = false;
         _isUpdating = false;

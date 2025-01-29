@@ -114,7 +114,7 @@ void main() {
           throw Exception('Failed');
         }).onError((_, __) {});
         expect(await values, [1, 0]);
-      }, timeout: Timeout(Duration(seconds: 1)));
+      }, timeout: const Timeout(Duration(seconds: 1)));
       test('Rolls back the state to the last save point when an update fails', () async {
         final values = service.values.take(3).toList();
         await service.streamUpdates((state, save) async* {
