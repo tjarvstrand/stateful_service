@@ -1,3 +1,9 @@
+## 5.2.0
+
+- Add `StatefulService.set` to directly set the state of a concrete value without going through a
+  loading state.
+- Various fixes for `Loader` to prevent excessive state updates.
+
 ## 5.1.1
 
 - Re-apply changes from 5.0.4 that were lost in the 5.1.0 release.
