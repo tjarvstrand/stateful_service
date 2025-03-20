@@ -1,3 +1,9 @@
+## 6.0.0
+
+ - BREAKING: Update `riverpod_stateful_service_generator` dependency major versions:
+   - `analyzer` to `7.0.0`
+   - `source_gen` to `2.0.0`
+
 ## 5.2.0
 
 - Add `StatefulService.set` to directly set the state of a concrete value without going through a

@@ -3,11 +3,12 @@ import 'dart:io';
 import 'package:build/build.dart';
 import 'package:build_test/build_test.dart';
 import 'package:dart_style/dart_style.dart';
+import 'package:pub_semver/pub_semver.dart';
 import 'package:riverpod_stateful_service_generator/riverpod_stateful_service_generator.dart';
 import 'package:riverpod_stateful_service_generator/src/riverpod_stateful_service_generator.dart';
 import 'package:test/test.dart';
 
-final _builderOptions = BuilderOptions({'formatter': DartFormatter(pageWidth: 120)});
+final _builderOptions = BuilderOptions({'formatter': DartFormatter(languageVersion: Version(3, 7, 0), pageWidth: 120)});
 
 Map<String, String> resource(String name) =>
     {'stateful_service_generator|test/resources/$name.dart': File('test/resources/$name.dart').readAsStringSync()};
