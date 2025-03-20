@@ -34,7 +34,7 @@ function publish {
         return $RESULT
     fi
     until [ "$(latest-version $1)" == "$VERSION" ]; do
-        echo 'Waiting...'
+        echo "Waiting for $1..."
         sleep 3
     done
 }
