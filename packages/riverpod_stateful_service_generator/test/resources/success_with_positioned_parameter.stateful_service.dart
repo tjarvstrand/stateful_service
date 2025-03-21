@@ -12,17 +12,14 @@ const aProvider = _$aNotifierProvider;
 
 extension ANotifierProviderExt on ANotifierProvider {
   ProviderListenable<A> get service => notifier.select((n) => n.service);
-  ProviderListenable<int> get state => select((s) => s.state);
+  ProviderListenable<int> get value => select((s) => s.value);
 }
 
 @riverpod
 class _$ANotifier extends _$$ANotifier {
   @override
   ServiceState<int> build(int a) {
-    service = A(
-      ref,
-      a,
-    );
+    service = A(ref, a);
     _subscription = service.listen((state) => this.state = state);
     ref.onDispose(() {
       _subscription.cancel();
@@ -30,7 +27,7 @@ class _$ANotifier extends _$$ANotifier {
         service.close();
       }
     });
-    return service.serviceState;
+    return service.state;
   }
 
   late A service;

@@ -8,7 +8,9 @@ import 'package:riverpod_stateful_service_generator/riverpod_stateful_service_ge
 import 'package:riverpod_stateful_service_generator/src/riverpod_stateful_service_generator.dart';
 import 'package:test/test.dart';
 
-final _builderOptions = BuilderOptions({'formatter': DartFormatter(languageVersion: Version(3, 7, 0), pageWidth: 120)});
+String format(String code, Version version) => DartFormatter(languageVersion: version, pageWidth: 120).format(code);
+
+final _builderOptions = BuilderOptions({'formatter': format});
 
 Map<String, String> resource(String name) =>
     {'stateful_service_generator|test/resources/$name.dart': File('test/resources/$name.dart').readAsStringSync()};
