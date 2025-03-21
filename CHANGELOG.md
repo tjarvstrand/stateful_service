@@ -1,3 +1,7 @@
+## 6.0.1
+
+ - Fix `riverpod_stateful_service_generator` builder parameter.
+
 ## 6.0.0
 
  - BREAKING: Update `riverpod_stateful_service_generator` dependency major versions:
