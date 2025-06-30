@@ -38,7 +38,13 @@ void main() {
 
   group('StatefulService', () {
     group('initialization', () {
-      test('sets isInitializing when done', () async {
+      test('sets isInitializing to false when done', () async {
+        final service = TestService(initialState: 0, init: (_) => Future.delayed(const Duration(milliseconds: 300)));
+        expect(service.isInitializing, true);
+        await service.initComplete;
+        expect(service.isInitializing, false);
+      });
+      test('Sets isInitializing on the state to false when done', () async {
         final service = TestService(initialState: 0, init: (_) => Future.delayed(const Duration(milliseconds: 300)));
         expect(service.isInitializing, true);
         await service.initComplete;

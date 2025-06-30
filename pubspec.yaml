@@ -1,7 +1,13 @@
-name: stateful_service_project
+name: stateful_service_workspace
+publish_to: none
 
 environment:
-  sdk: '>=3.0.0 <4.0.0'
-dev_dependencies:
-  melos: ^6.1.0
+  sdk: ">=3.5.0 <4.0.0"
+
+workspace:
+  - packages/riverpod_stateful_service
+  - packages/riverpod_stateful_service_annotation
+  - packages/riverpod_stateful_service_generator
+  - packages/shared_preferences_stateful_service_cache
+  - packages/stateful_service
 

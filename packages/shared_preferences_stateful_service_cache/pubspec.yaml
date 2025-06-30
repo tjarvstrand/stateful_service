@@ -8,8 +8,10 @@ version: 6.0.1
 homepage: https://github.com/tjarvstrand/stateful_service
 
 environment:
-  sdk: ">=3.0.0 <4.0.0"
+  sdk: ">=3.5.0 <4.0.0"
   flutter: ">=1.17.0"
+
+resolution: workspace
 
 dependencies:
   meta: ^1.11.0

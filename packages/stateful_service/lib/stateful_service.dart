@@ -41,7 +41,7 @@ sealed class ServiceState<T> {
 }
 
 class ServiceStateUpdating<T> extends ServiceState<T> with EquatableMixin {
-  ServiceStateUpdating._(this.value, {required this.wasUpdating});
+  ServiceStateUpdating._(this.value, {required this.wasUpdating, this.isInitializing = false});
 
   @override
   final T value;
@@ -51,6 +51,12 @@ class ServiceStateUpdating<T> extends ServiceState<T> with EquatableMixin {
 
   @override
   bool get isUpdating => true;
+
+  /// True if this service was given an initialization function which is
+  /// currently being run.
+  ///
+  /// Note that this will be true on the service's state slightly after the flag on the service itself, and
+  final bool isInitializing;
 
   @override
   final Object? error = null;
@@ -107,6 +113,7 @@ class ServiceStateIdle<T> extends ServiceState<T> with EquatableMixin {
   }) =>
       idle(this);
 
+  @override
   T2? whenOrNull<T2>({
     T2 Function(ServiceStateIdle<T>)? idle,
     T2 Function(ServiceStateUpdating<T>)? updating,
@@ -114,6 +121,7 @@ class ServiceStateIdle<T> extends ServiceState<T> with EquatableMixin {
   }) =>
       idle?.call(this);
 
+  @override
   ServiceState<T2> map<T2>(T2 Function(T) f) => ServiceStateIdle._(f(value));
 }
 
@@ -143,6 +151,7 @@ class ServiceStateError<T> extends ServiceState<T> with EquatableMixin {
   }) =>
       error(this);
 
+  @override
   T2? whenOrNull<T2>({
     T2 Function(ServiceStateIdle<T>)? idle,
     T2 Function(ServiceStateUpdating<T>)? updating,
@@ -150,6 +159,7 @@ class ServiceStateError<T> extends ServiceState<T> with EquatableMixin {
   }) =>
       error?.call(this);
 
+  @override
   ServiceState<T2> map<T2>(T2 Function(T) f) => ServiceStateError._(f(value), error, stackTrace);
 }
 
@@ -187,7 +197,11 @@ abstract class StatefulService<S> {
     this.verboseLogging = false,
   })  : _state = init == null
             ? ServiceStateIdle._(initialState) as ServiceState<S>
-            : ServiceStateUpdating._(initialState, wasUpdating: false),
+            : ServiceStateUpdating._(
+                initialState,
+                wasUpdating: false,
+                isInitializing: true,
+              ),
         _name = name,
         _cache = cache,
         _shouldStateBeEmitted = shouldStateBeEmitted ?? ((a, b) => a != b) {
@@ -197,14 +211,14 @@ abstract class StatefulService<S> {
     Future<S> runInit(S initialState) async {
       try {
         final state = await init?.call(initialState) ?? initialState;
+        _isInitializing = false; // We want to set this before the state is emitted so that it is visible to listeners.
         await _addState(ServiceStateIdle._(state));
         return state;
       } catch (error, trace) {
+        _isInitializing = false;
         _logger.severe('[${this.name}] Failed to run service init function', error, trace);
         await _addState(ServiceStateError._(initialState, error, trace));
         return initialState;
-      } finally {
-        _isInitializing = false;
       }
     }
 
