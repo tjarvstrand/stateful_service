@@ -1,3 +1,7 @@
+## Unreleased
+
+ - Update to build_test 3.2.1
+
 ## 6.0.1
 
  - Fix `riverpod_stateful_service_generator` builder parameter.
