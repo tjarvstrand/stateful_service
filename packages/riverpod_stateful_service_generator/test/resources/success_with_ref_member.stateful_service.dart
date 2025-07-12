@@ -17,22 +17,20 @@ extension ANotifierProviderExt on ANotifierProvider {
 
 @riverpod
 class _$ANotifier extends _$$ANotifier {
+  late A service;
+
+  late StreamSubscription _subscription;
+
   @override
   ServiceState<int> build() {
     service = A(ref);
     _subscription = service.listen((state) => this.state = state);
     ref.onDispose(() {
       _subscription.cancel();
-      if (_closeOnDispose) {
-        service.close();
-      }
+      service.close();
     });
     return service.state;
   }
-
-  late A service;
-  late StreamSubscription _subscription;
-  final _closeOnDispose = true;
 
   // Defer this decision to [service].
   @override
