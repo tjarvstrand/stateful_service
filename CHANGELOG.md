@@ -1,6 +1,9 @@
 ## Unreleased
 
+ ### riverpod_stateful_service_generator
  - Update to build_test 3.2.1
+ - Switch to use code_builder instead template strings.
+ - Stop using deprecated analyzer APIs.
 
 ## 6.0.1
 

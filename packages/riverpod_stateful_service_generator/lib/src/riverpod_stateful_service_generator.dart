@@ -1,5 +1,5 @@
 import 'package:analyzer/dart/ast/ast.dart' hide Block, Expression;
-import 'package:analyzer/dart/element/element.dart';
+import 'package:analyzer/dart/element/element2.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:build/build.dart';
 import 'package:built_collection/built_collection.dart';
@@ -48,7 +48,7 @@ class RiverpodStatefulServiceGenerator extends ParserGenerator<RiverpodService> 
         }
       }
 
-      final fileName = unit.declaredElement!.source.fullName;
+      final fileName = unit.declaredFragment!.source.fullName;
       if (!hasRiverPodImport) {
         log.severe('The file $fileName must import riverpod.dart');
       }
@@ -75,16 +75,19 @@ class RiverpodStatefulServiceGenerator extends ParserGenerator<RiverpodService> 
       return;
     }
 
-    final serviceClass = unit.declaredElement;
+    final serviceClass = unit.declaredFragment?.element;
     if (serviceClass == null) {
       return;
     }
 
+    final serviceClassName = serviceClass.displayName;
+    final serviceClassNameLower = '${serviceClassName.substring(0, 1).toLowerCase()}${serviceClassName.substring(1)}';
+
     final statefulServiceSupertype =
-        serviceClass.allSupertypes.firstWhereOrNull((supertype) => supertype.element.name == 'StatefulService');
+        serviceClass.allSupertypes.firstWhereOrNull((supertype) => supertype.element3.displayName == 'StatefulService');
 
     if (statefulServiceSupertype == null) {
-      throw MissingExtensionError(serviceClass.name);
+      throw MissingExtensionError(serviceClass.displayName);
     }
 
     final annotationArguments = annotation.arguments?.arguments
@@ -93,18 +96,18 @@ class RiverpodStatefulServiceGenerator extends ParserGenerator<RiverpodService> 
         .join(', ');
     final annotationOut = annotationArguments == null ? 'riverpod' : 'Riverpod(${annotationArguments})';
 
-    final constructor = serviceClass.children.firstWhereOrNull((element) {
-      return element is ConstructorElement && element.name.isEmpty;
-    }) as ConstructorElement?;
+    final constructor = serviceClass.constructors2.firstWhereOrNull((element) {
+      return element.displayName == serviceClassName;
+    });
 
     if (constructor == null) {
-      throw MissingUnnamedConstructorError(serviceClass.name);
+      throw MissingUnnamedConstructorError(serviceClassName);
     }
 
     final keepAlive = annotation.arguments?.arguments
         .firstWhereOrNull((arg) => arg is NamedExpression && arg.name.label.name == 'keepAlive') as NamedExpression?;
 
-    final isFamily = constructor.parameters.length > 1;
+    final isFamily = constructor.formalParameters.length > 1;
     final isAutoDispose = keepAlive?.expression.toString() != 'true';
 
     final closeOnDisposeExpr = annotation.arguments?.arguments
@@ -112,40 +115,38 @@ class RiverpodStatefulServiceGenerator extends ParserGenerator<RiverpodService> 
         as NamedExpression?;
     final closeOnDispose = closeOnDisposeExpr?.expression.toString() != 'false';
 
-    final serviceType = serviceClass.name;
     final stateType = statefulServiceSupertype.typeArguments.first.getDisplayString();
-    final serviceNameLower = '${serviceType.substring(0, 1).toLowerCase()}${serviceClass.name.substring(1)}';
 
     final providerTypeDef = TypeDef((b) => b
-      ..name = '${serviceType}NotifierProvider'
+      ..name = '${serviceClassName}NotifierProvider'
       ..definition = TypeReference((b) => b
         ..symbol = isFamily
-            ? '_\$${serviceType}NotifierProvider'
+            ? '_\$${serviceClassName}NotifierProvider'
             : isAutoDispose
                 ? 'AutoDisposeNotifierProvider'
                 : 'NotifierProvider'
         ..types = ListBuilder(isFamily
             ? []
             : [
-                TypeReference((b) => b..symbol = '_\$${serviceType}Notifier'),
+                TypeReference((b) => b..symbol = '_\$${serviceClassName}Notifier'),
                 TypeReference((b) => b..symbol = 'ServiceState<$stateType>')
               ])));
 
     final providerDeclaration = Field(
       (f) => f
-        ..name = '${serviceNameLower}Provider'
+        ..name = '${serviceClassNameLower}Provider'
         ..modifier = isFamily ? FieldModifier.constant : FieldModifier.final$
-        ..assignment = refer('_\$${serviceNameLower}NotifierProvider').code,
+        ..assignment = refer('_\$${serviceClassNameLower}NotifierProvider').code,
     );
 
     final providerExtension = Extension((b) => b
-      ..name = '${serviceType}NotifierProviderExt'
-      ..on = TypeReference((b) => b.symbol = '${serviceType}NotifierProvider')
+      ..name = '${serviceClassName}NotifierProviderExt'
+      ..on = TypeReference((b) => b.symbol = '${serviceClassName}NotifierProvider')
       ..methods = ListBuilder([
         Method(
           (b) => b
             ..name = 'service'
-            ..returns = TypeReference((b) => b.symbol = 'ProviderListenable<${serviceType}>')
+            ..returns = TypeReference((b) => b.symbol = 'ProviderListenable<${serviceClassName}>')
             ..type = MethodType.getter
             ..body = refer('notifier').property('select').call([
               Method((b) => b
@@ -173,11 +174,12 @@ class RiverpodStatefulServiceGenerator extends ParserGenerator<RiverpodService> 
     final buildOptionalParameters = <Parameter>[];
     final buildRequiredParameters = <Parameter>[];
 
-    for (final p in constructor.parameters) {
-      final element = p.type.element;
+    for (final p in constructor.formalParameters) {
+      final element = p.type.element3;
       if (p.type is InvalidType ||
-          (element is ClassElement &&
-              (element.name == 'Ref' || element.allSupertypes.any((element) => element.element.name == 'Ref')))) {
+          (element is ClassElement2 &&
+              (element.displayName == 'Ref' ||
+                  element.allSupertypes.any((superType) => superType.element3.displayName == 'Ref')))) {
         continue;
       }
 
@@ -185,14 +187,14 @@ class RiverpodStatefulServiceGenerator extends ParserGenerator<RiverpodService> 
         ..named = p.isNamed
         // This only controls the `required` keyword in the generated code.
         ..required = p.isNamed && p.isRequired
-        ..name = p.name
+        ..name = p.displayName
         ..type = TypeReference((b) => b.symbol = p.type.getDisplayString()));
 
       final parameters = p.isRequired ? buildRequiredParameters : buildOptionalParameters;
       if (p.isNamed) {
-        serviceConstructorNamedArguments[p.name] = refer(p.name);
+        serviceConstructorNamedArguments[p.displayName] = refer(p.displayName);
       } else {
-        serviceConstructorPositionalArguments.add(refer(p.name));
+        serviceConstructorPositionalArguments.add(refer(p.displayName));
       }
       parameters.add(parameter);
     }
@@ -205,7 +207,8 @@ class RiverpodStatefulServiceGenerator extends ParserGenerator<RiverpodService> 
       ..requiredParameters = ListBuilder(buildRequiredParameters)
       ..body = Block.of([
         refer('service')
-            .assign(refer(serviceType).call(serviceConstructorPositionalArguments, serviceConstructorNamedArguments))
+            .assign(
+                refer(serviceClassName).call(serviceConstructorPositionalArguments, serviceConstructorNamedArguments))
             .statement,
         refer('_subscription')
             .assign(refer('service').property('listen').call([
@@ -242,13 +245,13 @@ class RiverpodStatefulServiceGenerator extends ParserGenerator<RiverpodService> 
 
     final notifierClass = Class((b) => b
       ..annotations.add(CodeExpression(Code(annotationOut)))
-      ..name = '_\$${serviceType}Notifier'
-      ..extend = TypeReference((b) => b..symbol = '_\$\$${serviceClass.name}Notifier')
+      ..name = '_\$${serviceClassName}Notifier'
+      ..extend = TypeReference((b) => b..symbol = '_\$\$${serviceClassName}Notifier')
       ..fields.addAll([
         Field((f) => f
           ..name = 'service'
           ..late = true
-          ..type = TypeReference((b) => b.symbol = serviceType)),
+          ..type = TypeReference((b) => b.symbol = serviceClassName)),
         Field((f) => f
           ..name = '_subscription'
           ..late = true
