@@ -1,5 +1,9 @@
 ## Unreleased
 
+### riverpod_stateful_service, riverpod_stateful_service_generator, riverpod_stateful_service_annotation
+
+- Support Riverpod 3
+
 ## 6.2.0+2
 
  - Check code format in CI and publish script

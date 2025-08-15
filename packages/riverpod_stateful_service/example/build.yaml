@@ -1,0 +1,9 @@
+targets:
+  $default:
+    sources:
+      include:
+        - lib/**
+        # Note that it is important to include these in the default target.
+        - lib/$lib$
+        - $package$
+        - pubspec.*

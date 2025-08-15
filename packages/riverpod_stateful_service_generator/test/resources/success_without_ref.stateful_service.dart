@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'success_with_ref_member.dart';
+part of 'success_without_ref.dart';
 
 // **************************************************************************
 // RiverpodStatefulServiceGenerator
@@ -14,4 +14,4 @@ extension ANotifierProviderExt on ANotifierProvider {
   ProviderListenable<int> get value => select((s) => s.value);
 }
 
-final ANotifierProvider aProvider = NotifierProvider.autoDispose(() => StatefulServiceNotifier((ref) => A(ref)));
+final ANotifierProvider aProvider = NotifierProvider.autoDispose(() => StatefulServiceNotifier((ref) => A()));

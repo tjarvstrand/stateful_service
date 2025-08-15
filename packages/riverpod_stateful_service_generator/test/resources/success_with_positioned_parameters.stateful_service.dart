@@ -6,33 +6,18 @@ part of 'success_with_positioned_parameters.dart';
 // RiverpodStatefulServiceGenerator
 // **************************************************************************
 
-typedef ANotifierProvider = _$ANotifierProvider;
+typedef ANotifierProvider = StatefulServiceNotifierProvider<A, int>;
 
-const aProvider = _$aNotifierProvider;
+typedef ANotifierProviderFamily = StatefulServiceNotifierProviderFamily<A, int, (int, int?, int)>;
 
 extension ANotifierProviderExt on ANotifierProvider {
   ProviderListenable<A> get service => notifier.select((n) => n.service);
-  ProviderListenable<(int, int?, int)> get value => select((s) => s.value);
+
+  ProviderListenable<int> get value => select((s) => s.value);
 }
 
-@riverpod
-class _$ANotifier extends _$$ANotifier {
-  late A service;
+ANotifierProvider aProvider(int a, [int? b, int c = 0]) => _$aProvider((a, b, c));
 
-  late StreamSubscription _subscription;
-
-  @override
-  ServiceState<(int, int?, int)> build(int a, [int? b, int c = 0]) {
-    service = A(ref, a, b, c);
-    _subscription = service.listen((state) => this.state = state);
-    ref.onDispose(() {
-      _subscription.cancel();
-      service.close();
-    });
-    return service.state;
-  }
-
-  // Defer this decision to [service].
-  @override
-  bool updateShouldNotify(ServiceState<(int, int?, int)> old, ServiceState<(int, int?, int)> current) => true;
-}
+final ANotifierProviderFamily _$aProvider = NotifierProvider.autoDispose.family(
+  (arg) => StatefulServiceNotifier((ref) => A(ref, arg.$1, arg.$2, arg.$3)),
+);

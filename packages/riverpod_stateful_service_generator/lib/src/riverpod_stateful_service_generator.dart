@@ -1,7 +1,6 @@
 import 'package:analyzer/dart/ast/ast.dart' hide Block, Expression;
 import 'package:analyzer/dart/element/element2.dart';
-import 'package:analyzer/dart/element/type.dart';
-import 'package:build/build.dart';
+import 'package:analyzer/dart/element/type.dart' hide FunctionType, RecordType;
 import 'package:built_collection/built_collection.dart';
 import 'package:code_builder/code_builder.dart';
 import 'package:collection/collection.dart';
@@ -33,42 +32,32 @@ class MissingUnnamedConstructorError extends InvalidGenerationSourceError {
 @immutable
 class RiverpodStatefulServiceGenerator extends ParserGenerator<RiverpodService> {
   @override
-  String generateForUnit(List<CompilationUnit> compilationUnits) {
+  String generateForUnit(Iterable<CompilationUnit> compilationUnits) {
     final buffer = StringBuffer();
-    var hasRiverPodImport = false;
-    var hasRiverPodAnnotationImport = false;
     for (final unit in compilationUnits) {
-      for (final directive in unit.directives) {
-        if (directive is ImportDirective) {
-          if (directive.uri.stringValue == 'package:riverpod/riverpod.dart') {
-            hasRiverPodImport = true;
-          } else if (directive.uri.stringValue == 'package:riverpod_annotation/riverpod_annotation.dart') {
-            hasRiverPodAnnotationImport = true;
-          }
-        }
-      }
-
-      final fileName = unit.declaredFragment!.source.fullName;
-      if (!hasRiverPodImport) {
-        log.severe('The file $fileName must import riverpod.dart');
-      }
-
-      if (!hasRiverPodAnnotationImport) {
-        log.severe('The file $fileName must import riverpod_annotation.dart');
-      }
-
+      final importPrefixes = {
+        for (final d in unit.directives.whereType<ImportDirective>())
+          if (d.prefix != null) d.uri.stringValue!: '${d.prefix!.name}.'
+      };
       for (final declaration in unit.declarations) {
         if (declaration is ClassDeclaration) {
-          _generateForClass(declaration, buffer);
+          _generateForClass(declaration, buffer, importPrefixes);
         }
       }
     }
     return buffer.toString();
   }
 
-  void _generateForClass(ClassDeclaration unit, StringBuffer buffer) {
+  String _typeDisplayString(DartType type, Map<String, String> importPrefixes) {
+    final prefix = importPrefixes[type.element3?.library2?.uri.toString()] ?? '';
+    return '$prefix${type.getDisplayString()}';
+  }
+
+  void _generateForClass(ClassDeclaration unit, StringBuffer buffer, Map<String, String> importPrefixes) {
     final annotation = unit.sortedCommentAndAnnotations.firstWhereOrNull(
-      (node) => node is Annotation && (node.name.name == 'riverpodService' || node.name.name == 'RiverpodService'),
+      (node) =>
+          node is Annotation &&
+          (node.element2?.displayName == 'riverpodService' || node.element2?.displayName == 'RiverpodService'),
     ) as Annotation?;
 
     if (annotation == null) {
@@ -90,11 +79,13 @@ class RiverpodStatefulServiceGenerator extends ParserGenerator<RiverpodService> 
       throw MissingExtensionError(serviceClass.displayName);
     }
 
-    final annotationArguments = annotation.arguments?.arguments
-        .where((arg) => arg is NamedExpression && arg.name.label.name != 'closeOnDispose')
+    final annotationArguments =
+        annotation.arguments?.arguments.whereType<NamedExpression>() ?? const <NamedExpression>[];
+
+    final providerConstructorArguments = annotationArguments
+        .where((arg) => arg.name.label.name != 'closeOnDispose' && arg.name.label.name != 'keepAlive')
         .map((arg) => arg.toString())
         .join(', ');
-    final annotationOut = annotationArguments == null ? 'riverpod' : 'Riverpod(${annotationArguments})';
 
     final constructor = serviceClass.constructors2.firstWhereOrNull((element) {
       return element.displayName == serviceClassName;
@@ -104,40 +95,19 @@ class RiverpodStatefulServiceGenerator extends ParserGenerator<RiverpodService> 
       throw MissingUnnamedConstructorError(serviceClassName);
     }
 
-    final keepAlive = annotation.arguments?.arguments
-        .firstWhereOrNull((arg) => arg is NamedExpression && arg.name.label.name == 'keepAlive') as NamedExpression?;
+    final isAutoDispose = !annotationArguments
+        .any((arg) => arg.name.label.name == 'keepAlive' && arg.expression.beginToken.stringValue == 'true');
 
     final isFamily = constructor.formalParameters.length > 1;
-    final isAutoDispose = keepAlive?.expression.toString() != 'true';
+    final familySuffix = isFamily ? 'Family' : '';
 
-    final closeOnDisposeExpr = annotation.arguments?.arguments
-            .firstWhereOrNull((arg) => arg is NamedExpression && arg.name.label.name == 'closeOnDispose')
-        as NamedExpression?;
-    final closeOnDispose = closeOnDisposeExpr?.expression.toString() != 'false';
+    final closeOnDispose = annotationArguments
+        .any((arg) => arg.name.label.name == 'closeOnDispose' && arg.expression.beginToken.stringValue == 'true');
 
-    final stateType = statefulServiceSupertype.typeArguments.first.getDisplayString();
+    final stateTypeName = _typeDisplayString(statefulServiceSupertype.typeArguments.first, importPrefixes);
 
-    final providerTypeDef = TypeDef((b) => b
-      ..name = '${serviceClassName}NotifierProvider'
-      ..definition = TypeReference((b) => b
-        ..symbol = isFamily
-            ? '_\$${serviceClassName}NotifierProvider'
-            : isAutoDispose
-                ? 'AutoDisposeNotifierProvider'
-                : 'NotifierProvider'
-        ..types = ListBuilder(isFamily
-            ? []
-            : [
-                TypeReference((b) => b..symbol = '_\$${serviceClassName}Notifier'),
-                TypeReference((b) => b..symbol = 'ServiceState<$stateType>')
-              ])));
-
-    final providerDeclaration = Field(
-      (f) => f
-        ..name = '${serviceClassNameLower}Provider'
-        ..modifier = isFamily ? FieldModifier.constant : FieldModifier.final$
-        ..assignment = refer('_\$${serviceClassNameLower}NotifierProvider').code,
-    );
+    final statefulServicePrefix =
+        importPrefixes['package:riverpod_stateful_service_annotation/riverpod_stateful_service_annotation.dart'] ?? '';
 
     final providerExtension = Extension((b) => b
       ..name = '${serviceClassName}NotifierProviderExt'
@@ -146,7 +116,8 @@ class RiverpodStatefulServiceGenerator extends ParserGenerator<RiverpodService> 
         Method(
           (b) => b
             ..name = 'service'
-            ..returns = TypeReference((b) => b.symbol = 'ProviderListenable<${serviceClassName}>')
+            ..returns =
+                TypeReference((b) => b.symbol = '${statefulServicePrefix}ProviderListenable<${serviceClassName}>')
             ..type = MethodType.getter
             ..body = refer('notifier').property('select').call([
               Method((b) => b
@@ -158,7 +129,7 @@ class RiverpodStatefulServiceGenerator extends ParserGenerator<RiverpodService> 
         Method(
           (b) => b
             ..name = 'value'
-            ..returns = TypeReference((b) => b.symbol = 'ProviderListenable<${stateType}>')
+            ..returns = TypeReference((b) => b.symbol = '${statefulServicePrefix}ProviderListenable<${stateTypeName}>')
             ..type = MethodType.getter
             ..body = refer('select').call([
               Method((b) => b
@@ -169,110 +140,141 @@ class RiverpodStatefulServiceGenerator extends ParserGenerator<RiverpodService> 
         )
       ]));
 
-    final serviceConstructorPositionalArguments = <Expression>[refer('ref')];
-    final serviceConstructorNamedArguments = <String, Expression>{};
-    final buildOptionalParameters = <Parameter>[];
-    final buildRequiredParameters = <Parameter>[];
-
-    for (final p in constructor.formalParameters) {
+    final nonRefConstructorParameters = constructor.formalParameters.whereNot((p) {
       final element = p.type.element3;
-      if (p.type is InvalidType ||
+      return p.type is InvalidType ||
           (element is ClassElement2 &&
               (element.displayName == 'Ref' ||
-                  element.allSupertypes.any((superType) => superType.element3.displayName == 'Ref')))) {
-        continue;
-      }
+                  element.allSupertypes.any((superType) => superType.element3.displayName == 'Ref')));
+    });
+    final constructorHasRefParameter = constructor.formalParameters.length != nonRefConstructorParameters.length;
+    final nonRefPositionalConstructorParameters = nonRefConstructorParameters.where((p) => !p.isNamed);
+    final nonRefNamedConstructorParameters = nonRefConstructorParameters.where((p) => p.isNamed);
 
-      final defaultValue = p.defaultValueCode;
-      final parameter = Parameter((b) => b
-        ..named = p.isNamed
-        // This only controls the `required` keyword in the generated code.
-        ..required = p.isNamed && p.isRequired
-        ..name = p.displayName
-        ..type = TypeReference((b) => b.symbol = p.type.getDisplayString())
-        ..defaultTo = defaultValue != null ? Code(defaultValue) : null);
+    final recordType = isFamily
+        ? RecordType((b) => b
+          ..positionalFieldTypes = ListBuilder([
+            for (final p in nonRefPositionalConstructorParameters)
+              TypeReference((b) => b..symbol = _typeDisplayString(p.type, importPrefixes)),
+          ])
+          ..namedFieldTypes = MapBuilder({
+            for (final p in nonRefNamedConstructorParameters)
+              p.displayName: TypeReference((b) => b..symbol = _typeDisplayString(p.type, importPrefixes)),
+          }))
+        : null;
 
-      final parameters = p.isRequired && !p.isNamed ? buildRequiredParameters : buildOptionalParameters;
-      if (p.isNamed) {
-        serviceConstructorNamedArguments[p.displayName] = refer(p.displayName);
-      } else {
-        serviceConstructorPositionalArguments.add(refer(p.displayName));
-      }
-      parameters.add(parameter);
-    }
+    final providerTypeName = '${serviceClassName}NotifierProvider';
 
-    final buildMethodBuilder = MethodBuilder()
-      ..name = 'build'
-      ..annotations = ListBuilder([CodeExpression(Code('override'))])
-      ..returns = TypeReference((b) => b.symbol = 'ServiceState<$stateType>')
-      ..optionalParameters = ListBuilder(buildOptionalParameters)
-      ..requiredParameters = ListBuilder(buildRequiredParameters)
-      ..body = Block.of([
-        refer('service')
-            .assign(
-                refer(serviceClassName).call(serviceConstructorPositionalArguments, serviceConstructorNamedArguments))
-            .statement,
-        refer('_subscription')
-            .assign(refer('service').property('listen').call([
+    final providerTypeDef = TypeDef((b) => b
+      ..name = providerTypeName
+      ..definition = TypeReference((b) => b
+        ..symbol = '${statefulServicePrefix}StatefulServiceNotifierProvider'
+        ..types = ListBuilder([
+          TypeReference((b) => b..symbol = serviceClassName),
+          TypeReference((b) => b..symbol = stateTypeName),
+        ])));
+
+    final providerFamilyTypeDef = recordType != null
+        ? TypeDef((b) => b
+          ..name = '${providerTypeName}Family'
+          ..definition = TypeReference((b) => b
+            ..symbol = '${statefulServicePrefix}StatefulServiceNotifierProviderFamily'
+            ..types = ListBuilder([
+              TypeReference((b) => b..symbol = serviceClassName),
+              TypeReference((b) => b..symbol = stateTypeName),
+              recordType,
+            ])))
+        : null;
+
+    final notifierProviderVarName =
+        isFamily ? '_\$${serviceClassNameLower}Provider' : '${serviceClassNameLower}Provider';
+
+    final notifierProviderRef = refer('${statefulServicePrefix}NotifierProvider');
+    final notifierProviderBase = switch ((isAutoDispose, isFamily)) {
+      (true, true) => notifierProviderRef.property('autoDispose').property('family'),
+      (true, false) => notifierProviderRef.property('autoDispose'),
+      (false, true) => notifierProviderRef.property('family'),
+      (false, false) => notifierProviderRef,
+    };
+
+    final wrapperDeclaration = isFamily
+        ? Method((b) => b
+          ..name = serviceClassNameLower + 'Provider'
+          ..returns = TypeReference((b) => b..symbol = providerTypeName)
+          ..requiredParameters.addAll([
+            for (final p in nonRefPositionalConstructorParameters.where((p) => !p.isOptional))
+              Parameter((b) => b
+                ..name = p.displayName
+                ..type = TypeReference((b) => b..symbol = _typeDisplayString(p.type, importPrefixes))),
+          ])
+          ..optionalParameters.addAll([
+            for (final p in nonRefPositionalConstructorParameters.where((p) => p.isOptional))
+              Parameter((b) => b
+                ..name = p.displayName
+                ..named = false
+                ..type = TypeReference((b) => b..symbol = _typeDisplayString(p.type, importPrefixes))
+                ..defaultTo = p.defaultValueCode != null ? Code(p.defaultValueCode!) : null),
+            for (final p in nonRefNamedConstructorParameters)
+              Parameter((b) => b
+                ..name = p.displayName
+                ..named = true
+                ..required = p.isRequired
+                ..type = TypeReference((b) => b..symbol = _typeDisplayString(p.type, importPrefixes))
+                ..defaultTo = p.defaultValueCode != null ? Code(p.defaultValueCode!) : null),
+          ])
+          ..body = refer(notifierProviderVarName).call([
+            literalRecord([
+              ...nonRefPositionalConstructorParameters.map((p) => refer(p.displayName)),
+            ], {
+              for (final p in nonRefNamedConstructorParameters) p.displayName: refer(p.displayName),
+            })
+          ]).code)
+        : null;
+
+    final notifierProviderDeclaration = Field((b) => b
+      ..type = TypeReference((b) => b..symbol = '$providerTypeName$familySuffix')
+      ..name = notifierProviderVarName
+      ..modifier = FieldModifier.final$
+      ..assignment = notifierProviderBase.call([
+        Method(
+          (b) => b
+            ..lambda = true
+            ..requiredParameters = ListBuilder([
+              if (isFamily) Parameter((b) => b..name = 'arg'),
+            ])
+            ..body = refer('${statefulServicePrefix}StatefulServiceNotifier').call([
               Method((b) => b
                 ..lambda = true
-                ..requiredParameters.add(Parameter((b) => b..name = 'state'))
-                ..body = refer('this').property('state').assign(refer('state')).code).closure
-            ]))
-            .statement,
-        refer('ref').property('onDispose').call([
-          Method((b) => b
-            ..body = Block.of([
-              refer('_subscription').property('cancel').call([]).statement,
-              if (closeOnDispose) refer('service').property('close').call([]).statement,
-            ])).closure
-        ]).statement,
-        refer('service').property('state').returned.statement,
-      ]);
-
-    final updateShouldNotifyMethod = Method((b) => b
-      ..docs = ListBuilder(['// Defer this decision to [service].'])
-      ..annotations = ListBuilder([CodeExpression(Code('override'))])
-      ..returns = refer('bool')
-      ..name = 'updateShouldNotify'
-      ..requiredParameters = ListBuilder([
-        Parameter((b) => b
-          ..name = 'old'
-          ..type = TypeReference((b) => b.symbol = 'ServiceState<$stateType>')),
-        Parameter((b) => b
-          ..name = 'current'
-          ..type = TypeReference((b) => b.symbol = 'ServiceState<$stateType>'))
-      ])
-      ..body = literalBool(true).code);
-
-    final notifierClass = Class((b) => b
-      ..annotations.add(CodeExpression(Code(annotationOut)))
-      ..name = '_\$${serviceClassName}Notifier'
-      ..extend = TypeReference((b) => b..symbol = '_\$\$${serviceClassName}Notifier')
-      ..fields.addAll([
-        Field((f) => f
-          ..name = 'service'
-          ..late = true
-          ..type = TypeReference((b) => b.symbol = serviceClassName)),
-        Field((f) => f
-          ..name = '_subscription'
-          ..late = true
-          ..type = TypeReference((b) => b.symbol = 'StreamSubscription')),
-      ])
-      ..methods.addAll([
-        buildMethodBuilder.build(),
-        updateShouldNotifyMethod,
-      ]));
+                ..requiredParameters = ListBuilder([Parameter((b) => b..name = 'ref')])
+                ..body = refer(serviceClassName).call([
+                  if (constructorHasRefParameter) refer('ref'),
+                  for (final (i, _) in nonRefPositionalConstructorParameters.indexed) refer('arg.\$${i + 1}'),
+                ], {
+                  for (final p in nonRefNamedConstructorParameters) p.displayName: refer('arg.${p.displayName}'),
+                }).code).closure,
+            ], {
+              if (closeOnDispose) 'closeOnDispose': literalBool(true),
+            }).code,
+        ).closure,
+        if (providerConstructorArguments.isNotEmpty) CodeExpression(Code(providerConstructorArguments)),
+      ]).code);
 
     final l = Library((b) => b
       ..body = ListBuilder([
         providerTypeDef,
         Code('\n'),
-        providerDeclaration,
-        Code('\n'),
+        if (providerFamilyTypeDef != null) ...[
+          providerFamilyTypeDef,
+          Code('\n'),
+        ],
         providerExtension,
         Code('\n'),
-        notifierClass,
+        if (wrapperDeclaration != null) ...[
+          wrapperDeclaration,
+          Code('\n\n'),
+        ],
+        notifierProviderDeclaration,
+        // notifierClass,
       ]));
 
     final out = formatter.format('${l.accept(emitter)}');

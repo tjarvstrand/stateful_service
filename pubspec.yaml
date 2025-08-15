@@ -6,8 +6,10 @@ environment:
 
 workspace:
   - packages/riverpod_stateful_service
+  - packages/riverpod_stateful_service/example
   - packages/riverpod_stateful_service_annotation
   - packages/riverpod_stateful_service_generator
+  - packages/riverpod_stateful_service_generator/example
   - packages/shared_preferences_stateful_service_cache
   - packages/stateful_service
 

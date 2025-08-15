@@ -34,11 +34,14 @@ Future<TestBuilderResult> _runTest(String name, {bool succeeds = true}) async {
 Future<void> main() async {
   group('Generators', () {
     test('base', () => _runTest('success_base'));
-    test('nullable_state', () => _runTest('success_with_nullable_state'));
+    test('without ref', () => _runTest('success_without_ref'));
+    test('nullable state', () => _runTest('success_with_nullable_state'));
     test('with positioned parameters', () => _runTest('success_with_positioned_parameters'));
     test('with named parameters', () => _runTest('success_with_named_parameters'));
     test('with annotation arguments', () => _runTest('success_with_annotation_arguments'));
     test('with ref member variable', () => _runTest('success_with_ref_member'));
+    test('with super parameters', () => _runTest('success_with_super_parameters'));
+    test('with import prefix', () => _runTest('success_with_import_prefix'));
   });
 
   // Can't detect the specific failure reasons anymore, so we just check that the build fails.
@@ -52,7 +55,7 @@ Future<void> main() async {
       ),
     );
     test(
-      'Missing build function',
+      'Missing unnamed constructor',
       () => expect(
         _runTest('fail_missing_unnamed_constructor', succeeds: false),
         // Can't detect the specific failure reasons anymore, so we just check that the build fails.
