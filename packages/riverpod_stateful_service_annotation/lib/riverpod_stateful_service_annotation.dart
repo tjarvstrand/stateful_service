@@ -5,7 +5,8 @@ import 'package:stateful_service/stateful_service.dart';
 export 'dart:async' show StreamSubscription;
 
 export 'package:meta/meta.dart' show protected;
-export 'package:riverpod/riverpod.dart' show ProviderListenable;
+export 'package:riverpod_stateful_service/riverpod_stateful_service.dart';
+export 'package:stateful_service/stateful_service.dart';
 
 /// An annotation placed on classes inheriting from [StatefulService] to generate a Riverpod provider for them.
 @Target({TargetKind.classType})

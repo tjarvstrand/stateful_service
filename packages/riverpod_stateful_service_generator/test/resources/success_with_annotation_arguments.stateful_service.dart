@@ -6,9 +6,9 @@ part of 'success_with_annotation_arguments.dart';
 // RiverpodStatefulServiceGenerator
 // **************************************************************************
 
-typedef ANotifierProvider = NotifierProvider<_$ANotifier, ServiceState<int>>;
+typedef ANotifierProvider = _$ANotifierProvider;
 
-final aProvider = _$aNotifierProvider;
+const aProvider = _$aNotifierProvider;
 
 extension ANotifierProviderExt on ANotifierProvider {
   ProviderListenable<A> get service => notifier.select((n) => n.service);
@@ -16,22 +16,15 @@ extension ANotifierProviderExt on ANotifierProvider {
 }
 
 @Riverpod(keepAlive: true, dependencies: [counter, B, bla])
-class _$ANotifier extends _$$ANotifier {
-  late A service;
+class _$ANotifier extends _$$ANotifier with StatefulServiceNotifierMixin<A, int> {
+  late A _service;
 
-  late StreamSubscription _subscription;
+  @override
+  final closeOnDispose = false;
 
   @override
   ServiceState<int> build() {
-    service = A(ref);
-    _subscription = service.listen((state) => this.state = state);
-    ref.onDispose(() {
-      _subscription.cancel();
-    });
-    return service.state;
+    _service = A(ref);
+    return _service.state;
   }
-
-  // Defer this decision to [service].
-  @override
-  bool updateShouldNotify(ServiceState<int> old, ServiceState<int> current) => true;
 }

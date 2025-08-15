@@ -40,9 +40,11 @@ class RiverpodStatefulServiceGenerator extends ParserGenerator<RiverpodService> 
     for (final unit in compilationUnits) {
       for (final directive in unit.directives) {
         if (directive is ImportDirective) {
-          if (directive.uri.stringValue == 'package:riverpod/riverpod.dart') {
+          final stringValue = directive.uri.stringValue;
+          if (stringValue == 'package:riverpod/riverpod.dart' ||
+              stringValue == 'package:flutter_riverpod/flutter_riverpod.dart') {
             hasRiverPodImport = true;
-          } else if (directive.uri.stringValue == 'package:riverpod_annotation/riverpod_annotation.dart') {
+          } else if (stringValue == 'package:riverpod_annotation/riverpod_annotation.dart') {
             hasRiverPodAnnotationImport = true;
           }
         }
@@ -50,7 +52,7 @@ class RiverpodStatefulServiceGenerator extends ParserGenerator<RiverpodService> 
 
       final fileName = unit.declaredFragment!.source.fullName;
       if (!hasRiverPodImport) {
-        log.severe('The file $fileName must import riverpod.dart');
+        log.severe('The file $fileName must import either riverpod.dart or flutter_riverpod.dart');
       }
 
       if (!hasRiverPodAnnotationImport) {
@@ -104,12 +106,6 @@ class RiverpodStatefulServiceGenerator extends ParserGenerator<RiverpodService> 
       throw MissingUnnamedConstructorError(serviceClassName);
     }
 
-    final keepAlive = annotation.arguments?.arguments
-        .firstWhereOrNull((arg) => arg is NamedExpression && arg.name.label.name == 'keepAlive') as NamedExpression?;
-
-    final isFamily = constructor.formalParameters.length > 1;
-    final isAutoDispose = keepAlive?.expression.toString() != 'true';
-
     final closeOnDisposeExpr = annotation.arguments?.arguments
             .firstWhereOrNull((arg) => arg is NamedExpression && arg.name.label.name == 'closeOnDispose')
         as NamedExpression?;
@@ -119,23 +115,12 @@ class RiverpodStatefulServiceGenerator extends ParserGenerator<RiverpodService> 
 
     final providerTypeDef = TypeDef((b) => b
       ..name = '${serviceClassName}NotifierProvider'
-      ..definition = TypeReference((b) => b
-        ..symbol = isFamily
-            ? '_\$${serviceClassName}NotifierProvider'
-            : isAutoDispose
-                ? 'AutoDisposeNotifierProvider'
-                : 'NotifierProvider'
-        ..types = ListBuilder(isFamily
-            ? []
-            : [
-                TypeReference((b) => b..symbol = '_\$${serviceClassName}Notifier'),
-                TypeReference((b) => b..symbol = 'ServiceState<$stateType>')
-              ])));
+      ..definition = TypeReference((b) => b..symbol = '_\$${serviceClassName}NotifierProvider'));
 
     final providerDeclaration = Field(
       (f) => f
         ..name = '${serviceClassNameLower}Provider'
-        ..modifier = isFamily ? FieldModifier.constant : FieldModifier.final$
+        ..modifier = FieldModifier.constant
         ..assignment = refer('_\$${serviceClassNameLower}NotifierProvider').code,
     );
 
@@ -208,60 +193,41 @@ class RiverpodStatefulServiceGenerator extends ParserGenerator<RiverpodService> 
       ..optionalParameters = ListBuilder(buildOptionalParameters)
       ..requiredParameters = ListBuilder(buildRequiredParameters)
       ..body = Block.of([
-        refer('service')
+        refer('_service')
             .assign(
                 refer(serviceClassName).call(serviceConstructorPositionalArguments, serviceConstructorNamedArguments))
             .statement,
-        refer('_subscription')
-            .assign(refer('service').property('listen').call([
-              Method((b) => b
-                ..lambda = true
-                ..requiredParameters.add(Parameter((b) => b..name = 'state'))
-                ..body = refer('this').property('state').assign(refer('state')).code).closure
-            ]))
-            .statement,
-        refer('ref').property('onDispose').call([
-          Method((b) => b
-            ..body = Block.of([
-              refer('_subscription').property('cancel').call([]).statement,
-              if (closeOnDispose) refer('service').property('close').call([]).statement,
-            ])).closure
-        ]).statement,
-        refer('service').property('state').returned.statement,
+        refer('_service').property('state').returned.statement,
       ]);
-
-    final updateShouldNotifyMethod = Method((b) => b
-      ..docs = ListBuilder(['// Defer this decision to [service].'])
-      ..annotations = ListBuilder([CodeExpression(Code('override'))])
-      ..returns = refer('bool')
-      ..name = 'updateShouldNotify'
-      ..requiredParameters = ListBuilder([
-        Parameter((b) => b
-          ..name = 'old'
-          ..type = TypeReference((b) => b.symbol = 'ServiceState<$stateType>')),
-        Parameter((b) => b
-          ..name = 'current'
-          ..type = TypeReference((b) => b.symbol = 'ServiceState<$stateType>'))
-      ])
-      ..body = literalBool(true).code);
 
     final notifierClass = Class((b) => b
       ..annotations.add(CodeExpression(Code(annotationOut)))
       ..name = '_\$${serviceClassName}Notifier'
       ..extend = TypeReference((b) => b..symbol = '_\$\$${serviceClassName}Notifier')
+      ..mixins = ListBuilder([
+        TypeReference(
+          (b) => b
+            ..symbol = 'StatefulServiceNotifierMixin'
+            ..types = ListBuilder([
+              TypeReference((b) => b.symbol = serviceClassName),
+              TypeReference((b) => b.symbol = '$stateType'),
+            ]),
+        )
+      ])
       ..fields.addAll([
         Field((f) => f
-          ..name = 'service'
+          ..name = '_service'
           ..late = true
           ..type = TypeReference((b) => b.symbol = serviceClassName)),
         Field((f) => f
-          ..name = '_subscription'
-          ..late = true
-          ..type = TypeReference((b) => b.symbol = 'StreamSubscription')),
+          ..annotations = ListBuilder([CodeExpression(Code('override'))])
+          ..name = 'closeOnDispose'
+          ..modifier = FieldModifier.final$
+          ..assignment = literalBool(closeOnDispose).code),
       ])
       ..methods.addAll([
         buildMethodBuilder.build(),
-        updateShouldNotifyMethod,
+        // updateShouldNotifyMethod,
       ]));
 
     final l = Library((b) => b

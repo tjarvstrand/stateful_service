@@ -13,6 +13,4 @@ class UserService extends StatefulService<User> {
   /// Your code here...
 }
 
-final StatefulServiceNotifierProvider<UserService, User> userServiceProvider = StatefulServiceNotifierProvider((ref) {
-  return StatefulServiceNotifier(UserService(initialState: const User(name: 'John Doe')));
-});
+final userServiceProvider = statefulServiceProvider((ref) => UserService(initialState: const User(name: 'John Doe')));

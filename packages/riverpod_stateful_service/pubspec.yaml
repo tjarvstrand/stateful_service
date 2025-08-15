@@ -12,7 +12,7 @@ environment:
 resolution: workspace
 
 dependencies:
-  riverpod: ^2.6.1
+  riverpod: ^3.0.0-dev.17
   stateful_service: ^6.2.0+2
 
 dev_dependencies:

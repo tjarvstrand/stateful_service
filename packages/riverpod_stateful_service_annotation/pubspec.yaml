@@ -14,8 +14,8 @@ resolution: workspace
 
 dependencies:
   meta: ^1.11.0
-  riverpod: ^2.6.1
-  riverpod_annotation: ^2.6.1
+  riverpod_annotation: ^3.0.0-dev.17
+  riverpod_stateful_service: ^6.2.0+2
   stateful_service: ^6.2.0+2
 
 dev_dependencies:
