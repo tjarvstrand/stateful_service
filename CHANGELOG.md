@@ -1,6 +1,7 @@
 ## Unreleased
 
  ### riverpod_stateful_service_generator
+ - Support named parameters in `@riverpodService` annotation target.
  - Update to build_test 3.2.1
  - Switch to use code_builder instead template strings.
  - Stop using deprecated analyzer APIs.

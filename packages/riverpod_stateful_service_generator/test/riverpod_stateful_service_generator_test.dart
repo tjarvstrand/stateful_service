@@ -35,7 +35,8 @@ Future<void> main() async {
   group('Generators', () {
     test('base', () => _runTest('success_base'));
     test('nullable_state', () => _runTest('success_with_nullable_state'));
-    test('with positioned parameter', () => _runTest('success_with_positioned_parameter'));
+    test('with positioned parameters', () => _runTest('success_with_positioned_parameters'));
+    test('with named parameters', () => _runTest('success_with_named_parameters'));
     test('with annotation arguments', () => _runTest('success_with_annotation_arguments'));
     test('with ref member variable', () => _runTest('success_with_ref_member'));
   });

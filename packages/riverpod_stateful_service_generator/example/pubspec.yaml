@@ -10,11 +10,17 @@ environment:
 
 dependencies:
   riverpod_annotation: ^2.3.5
-  riverpod_stateful_service_annotation:
-    path: ../../riverpod_stateful_service_annotation
+  riverpod_stateful_service_annotation: any
 
 dev_dependencies:
   build_runner: ^2.4.9
   riverpod_generator: ^2.4.0
+  riverpod_stateful_service_generator: any
+
+dependency_overrides:
+  riverpod_stateful_service:
+    path: ../../riverpod_stateful_service
+  riverpod_stateful_service_annotation:
+    path: ../../riverpod_stateful_service_annotation
   riverpod_stateful_service_generator:
     path: ..

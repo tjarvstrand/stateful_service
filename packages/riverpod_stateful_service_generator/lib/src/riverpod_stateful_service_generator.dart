@@ -183,14 +183,16 @@ class RiverpodStatefulServiceGenerator extends ParserGenerator<RiverpodService> 
         continue;
       }
 
+      final defaultValue = p.defaultValueCode;
       final parameter = Parameter((b) => b
         ..named = p.isNamed
         // This only controls the `required` keyword in the generated code.
         ..required = p.isNamed && p.isRequired
         ..name = p.displayName
-        ..type = TypeReference((b) => b.symbol = p.type.getDisplayString()));
+        ..type = TypeReference((b) => b.symbol = p.type.getDisplayString())
+        ..defaultTo = defaultValue != null ? Code(defaultValue) : null);
 
-      final parameters = p.isRequired ? buildRequiredParameters : buildOptionalParameters;
+      final parameters = p.isRequired && !p.isNamed ? buildRequiredParameters : buildOptionalParameters;
       if (p.isNamed) {
         serviceConstructorNamedArguments[p.displayName] = refer(p.displayName);
       } else {
