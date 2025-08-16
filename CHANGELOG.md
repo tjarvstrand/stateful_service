@@ -1,5 +1,12 @@
 ## Unreleased
 
+## 6.2.0+2
+
+ - Check code format in CI and publish script
+
+### riverpod_stateful_service_generator
+ - Add missing explicit dependencies
+
 ## 6.2.0+1
 
  - Fix analyzer warning.
