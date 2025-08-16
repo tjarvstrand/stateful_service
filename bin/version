@@ -12,3 +12,4 @@ PUBSPECS=$(ls $PWD/packages/*/pubspec.yaml)
 
 sed -i "s/version: .*/version: $VERSION/" ${PUBSPECS}
 sed -i "s/\([a-z_]*stateful_service[a-z_]*\):.*/\1: ^$VERSION/" ${PUBSPECS}
+sed -i "s/## Unreleased/## Unreleased\n\n## $VERSION/" CHANGELOG.md

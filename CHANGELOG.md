@@ -1,5 +1,7 @@
 ## Unreleased
 
+## 6.2.0
+
  ### riverpod_stateful_service_generator
  - Support named parameters in `@riverpodService` annotation target.
  - Update to build_test 3.2.1
