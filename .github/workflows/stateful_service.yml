@@ -17,6 +17,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: jdx/mise-action@v2
+      - run: dart format --set-exit-if-changed  --output=none .
       - run: flutter pub get
       - run: flutter test
 

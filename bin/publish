@@ -43,10 +43,11 @@ function publish {
     done
 }
 
+dart format --set-exit-if-changed  --output=none .
 dart analyze
 for directory in packages/*; do
   if [ -d "$directory/test" ]; then
-    (cd $directory; dart test)
+    (cd $directory; dart test; dart pub publish -n)
   fi
 done
 
