@@ -94,7 +94,7 @@ class ServiceStateIdle<T> extends ServiceState<T> with EquatableMixin {
   final T value;
 
   @override
-  bool isUpdating = false;
+  final bool isUpdating = false;
 
   @override
   final Object? error = null;
