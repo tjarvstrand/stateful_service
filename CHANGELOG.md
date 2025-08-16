@@ -1,6 +1,12 @@
 ## Unreleased
 
+## 6.2.0+1
+
  - Fix analyzer warning.
+ - Switch to mise.
+ - Fix some outdated tests.
+ - Improve publish script.
+ - Fix LICENSE file symlinks.
 
 ## 6.2.0
 

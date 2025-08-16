@@ -16,15 +16,23 @@ extension ANotifierProviderExt on ANotifierProvider {
 }
 
 @riverpod
-class _$ANotifier extends _$$ANotifier with StatefulServiceNotifierMixin<A, (int, int, int, int?)> {
-  late A _service;
+class _$ANotifier extends _$$ANotifier {
+  late A service;
 
-  @override
-  final closeOnDispose = true;
+  late StreamSubscription _subscription;
 
   @override
   ServiceState<(int, int, int, int?)> build(int a, {required int b, int c = 0, int? d}) {
-    _service = A(ref, a, b: b, c: c, d: d);
-    return _service.state;
+    service = A(ref, a, b: b, c: c, d: d);
+    _subscription = service.listen((state) => this.state = state);
+    ref.onDispose(() {
+      _subscription.cancel();
+      service.close();
+    });
+    return service.state;
   }
+
+  // Defer this decision to [service].
+  @override
+  bool updateShouldNotify(ServiceState<(int, int, int, int?)> old, ServiceState<(int, int, int, int?)> current) => true;
 }

@@ -16,7 +16,7 @@ jobs:
         working-directory: ./packages/stateful_service
     steps:
       - uses: actions/checkout@v4
-      - uses: dart-lang/setup-dart@v1
-      - run: dart pub get
-      - run: dart test
+      - uses: jdx/mise-action@v2
+      - run: flutter pub get
+      - run: flutter test
 

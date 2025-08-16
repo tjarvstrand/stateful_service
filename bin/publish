@@ -43,6 +43,13 @@ function publish {
     done
 }
 
+dart analyze
+for directory in packages/*; do
+  if [ -d "$directory/test" ]; then
+    (cd $directory; dart test)
+  fi
+done
+
 (publish stateful_service)
 (publish shared_preferences_stateful_service_cache)
 (publish riverpod_stateful_service)
