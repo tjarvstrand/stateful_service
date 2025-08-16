@@ -1,9 +1,9 @@
 
 [![pub package](https://img.shields.io/pub/v/stateful_service.svg?label=stateful_service&color=blue)](https://pub.dev/packages/stateful_service)
-[![popularity](https://img.shields.io/pub/popularity/stateful_service?logo=dart)](https://pub.dev/packages/stateful_service/score)
 [![likes](https://img.shields.io/pub/likes/stateful_service?logo=dart)](https://pub.dev/packages/stateful_service/score)
 [![pub points](https://img.shields.io/pub/points/stateful_service?logo=dart)](https://pub.dev/packages/stateful_service/score)
 ![building](https://github.com/tjarvstrand/stateful_service/workflows/stateful_service/badge.svg)
+
 ## Features
 
 This package provides a stream-based way to represent stateful services in Dart.

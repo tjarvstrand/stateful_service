@@ -1,8 +1,7 @@
 [![pub package](https://img.shields.io/pub/v/riverpod_stateful_service.svg?label=riverpod_stateful_service&color=blue)](https://pub.dev/packages/riverpod_stateful_service)
-[![popularity](https://img.shields.io/pub/popularity/riverpod_stateful_service?logo=dart)](https://pub.dev/packages/riverpod_stateful_service/score)
 [![likes](https://img.shields.io/pub/likes/riverpod_stateful_service?logo=dart)](https://pub.dev/packages/riverpod_stateful_service/score)
 [![pub points](https://img.shields.io/pub/points/riverpod_stateful_service?logo=dart)](https://pub.dev/packages/riverpod_stateful_service/score)
-![building](https://github.com/jonataslaw/get/workflows/build/badge.svg)
+![building](https://github.com/tjarvstrand/stateful_service/workflows/stateful_service/badge.svg)
 
 
 Lightweight [stateful_service](https://pub.dev/packages/stateful_service) wrapper for [riverpod](https://pub.dev/packages/riverpod).

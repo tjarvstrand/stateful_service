@@ -1,8 +1,7 @@
 [![pub package](https://img.shields.io/pub/v/riverpod_stateful_service_generator.svg?label=riverpod_stateful_service_generator&color=blue)](https://pub.dev/packages/riverpod_stateful_service_generator)
-[![popularity](https://img.shields.io/pub/popularity/riverpod_stateful_service_generator?logo=dart)](https://pub.dev/packages/riverpod_stateful_service_generator/score)
 [![likes](https://img.shields.io/pub/likes/riverpod_stateful_service_generator?logo=dart)](https://pub.dev/packages/riverpod_stateful_service_generator/score)
 [![pub points](https://img.shields.io/pub/points/riverpod_stateful_service_generator?logo=dart)](https://pub.dev/packages/riverpod_stateful_service_generator/score)
-![building](https://github.com/jonataslaw/get/workflows/build/badge.svg)
+![building](https://github.com/tjarvstrand/stateful_service/workflows/stateful_service/badge.svg)
 
 ## Getting started
 
