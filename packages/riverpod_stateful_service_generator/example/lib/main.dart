@@ -33,7 +33,8 @@ class MyApp extends ConsumerWidget {
           ),
         ),
         floatingActionButton: FloatingActionButton(
-          onPressed: () => ref.read(counterServiceProvider('my button').service).increment(),
+          onPressed: () =>
+              ref.read(counterServiceProvider('my button').service).increment(),
           tooltip: 'Increment',
           child: const Icon(Icons.add),
         ),

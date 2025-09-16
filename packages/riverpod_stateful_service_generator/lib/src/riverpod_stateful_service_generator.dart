@@ -260,6 +260,7 @@ class RiverpodStatefulServiceGenerator extends ParserGenerator<RiverpodService> 
       ]).code);
 
     final l = Library((b) => b
+      ..comments = ListBuilder(['ignore_for_file: unnecessary_lambdas'])
       ..body = ListBuilder([
         providerTypeDef,
         Code('\n'),

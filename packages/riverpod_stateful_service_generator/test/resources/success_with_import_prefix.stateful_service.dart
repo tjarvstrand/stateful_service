@@ -6,6 +6,8 @@ part of 'success_with_import_prefix.dart';
 // RiverpodStatefulServiceGenerator
 // **************************************************************************
 
+// ignore_for_file: unnecessary_lambdas
+
 typedef ANotifierProvider = s.StatefulServiceNotifierProvider<A, c.int>;
 
 typedef ANotifierProviderFamily = s.StatefulServiceNotifierProviderFamily<A, c.int, (c.int, c.int)>;

@@ -6,6 +6,8 @@ part of 'success_with_annotation_arguments.dart';
 // RiverpodStatefulServiceGenerator
 // **************************************************************************
 
+// ignore_for_file: unnecessary_lambdas
+
 typedef ANotifierProvider = StatefulServiceNotifierProvider<A, int>;
 
 extension ANotifierProviderExt on ANotifierProvider {

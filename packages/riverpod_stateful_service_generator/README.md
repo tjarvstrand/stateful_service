@@ -14,7 +14,6 @@ Once you have a `StatefulService`, you can easily create a Riverpod notifier pro
 an annotation:
 
 ```dart
-part 'user_service.g.dart';
 part 'user_service.stateful_service.dart';
 
 @riverpodService

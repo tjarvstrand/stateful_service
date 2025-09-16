@@ -6,6 +6,8 @@ part of 'success_with_super_parameters.dart';
 // RiverpodStatefulServiceGenerator
 // **************************************************************************
 
+// ignore_for_file: unnecessary_lambdas
+
 typedef ANotifierProvider = StatefulServiceNotifierProvider<A, int>;
 
 typedef ANotifierProviderFamily = StatefulServiceNotifierProviderFamily<A, int, ({String? name, int initialState})>;
