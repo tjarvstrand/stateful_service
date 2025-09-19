@@ -34,6 +34,7 @@ Future<TestBuilderResult> _runTest(String name, {bool succeeds = true}) async {
 Future<void> main() async {
   group('Generators', () {
     test('base', () => _runTest('success_base'));
+    test('multiple services', () => _runTest('success_multiple_services'));
     test('without ref', () => _runTest('success_without_ref'));
     test('nullable state', () => _runTest('success_with_nullable_state'));
     test('with positioned parameters', () => _runTest('success_with_positioned_parameters'));

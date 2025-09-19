@@ -1,5 +1,11 @@
 ## Unreleased
 
+## 7.0.1
+
+### riverpod_stateful_service_generator
+
+ - Don't output duplicate ignore comments.
+
 ## 7.0.0
 
 ### riverpod_stateful_service, riverpod_stateful_service_generator, riverpod_stateful_service_annotation

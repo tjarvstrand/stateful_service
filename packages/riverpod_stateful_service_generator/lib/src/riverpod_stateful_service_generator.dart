@@ -39,11 +39,17 @@ class RiverpodStatefulServiceGenerator extends ParserGenerator<RiverpodService> 
         for (final d in unit.directives.whereType<ImportDirective>())
           if (d.prefix != null) d.uri.stringValue!: '${d.prefix!.name}.'
       };
-      for (final declaration in unit.declarations) {
-        if (declaration is ClassDeclaration) {
-          _generateForClass(declaration, buffer, importPrefixes);
-        }
-      }
+      final specs = unit.declarations.whereType<ClassDeclaration>().expandIndexed((index, c) => [
+            if (index != 0) Code('\n'),
+            ..._generateForClass(c, buffer, importPrefixes),
+          ]);
+
+      final l = Library((b) => b
+        ..comments = ListBuilder(['ignore_for_file: unnecessary_lambdas'])
+        ..body = ListBuilder(specs));
+
+      final out = formatter.format('${l.accept(emitter)}');
+      buffer.write(out);
     }
     return buffer.toString();
   }
@@ -53,7 +59,7 @@ class RiverpodStatefulServiceGenerator extends ParserGenerator<RiverpodService> 
     return '$prefix${type.getDisplayString()}';
   }
 
-  void _generateForClass(ClassDeclaration unit, StringBuffer buffer, Map<String, String> importPrefixes) {
+  List<Spec> _generateForClass(ClassDeclaration unit, StringBuffer buffer, Map<String, String> importPrefixes) {
     final annotation = unit.sortedCommentAndAnnotations.firstWhereOrNull(
       (node) =>
           node is Annotation &&
@@ -61,12 +67,12 @@ class RiverpodStatefulServiceGenerator extends ParserGenerator<RiverpodService> 
     ) as Annotation?;
 
     if (annotation == null) {
-      return;
+      return [];
     }
 
     final serviceClass = unit.declaredFragment?.element;
     if (serviceClass == null) {
-      return;
+      return [];
     }
 
     final serviceClassName = serviceClass.displayName;
@@ -259,26 +265,21 @@ class RiverpodStatefulServiceGenerator extends ParserGenerator<RiverpodService> 
         if (providerConstructorArguments.isNotEmpty) CodeExpression(Code(providerConstructorArguments)),
       ]).code);
 
-    final l = Library((b) => b
-      ..comments = ListBuilder(['ignore_for_file: unnecessary_lambdas'])
-      ..body = ListBuilder([
-        providerTypeDef,
+    return [
+      providerTypeDef,
+      Code('\n'),
+      if (providerFamilyTypeDef != null) ...[
+        providerFamilyTypeDef,
         Code('\n'),
-        if (providerFamilyTypeDef != null) ...[
-          providerFamilyTypeDef,
-          Code('\n'),
-        ],
-        providerExtension,
-        Code('\n'),
-        if (wrapperDeclaration != null) ...[
-          wrapperDeclaration,
-          Code('\n\n'),
-        ],
-        notifierProviderDeclaration,
-        // notifierClass,
-      ]));
-
-    final out = formatter.format('${l.accept(emitter)}');
-    buffer.write(out);
+      ],
+      providerExtension,
+      Code('\n'),
+      if (wrapperDeclaration != null) ...[
+        wrapperDeclaration,
+        Code('\n\n'),
+      ],
+      notifierProviderDeclaration,
+      // notifierClass,
+    ];
   }
 }
